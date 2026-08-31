@@ -85,7 +85,7 @@ export class ArchivedConversationsController {
     if (this.#disposed) return;
     this.#emit({ phase: "loading" });
     try {
-      const result = await archivedRemote(this.#ctx).list({});
+      const result = await archivedRemote(this.#ctx).list();
       if (this.#disposed) return;
       if (!result.ok) {
         this.#emit({ phase: "error", message: { kind: "error", text: errorText(result) } });
