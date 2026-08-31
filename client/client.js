@@ -1,4 +1,7 @@
 window.__ModuleLoader__.load({ id: "dsh-plugin-archived-conversations", factory: (require) => {
+var module = { exports: {} };
+var exports = module.exports;
+Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
@@ -19549,4 +19552,5 @@ async function apply(ctx) {
 }
 var index_default = apply;
 
+return module.exports;
 } });
