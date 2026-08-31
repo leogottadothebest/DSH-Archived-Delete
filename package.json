@@ -1,0 +1,48 @@
+{
+  "name": "dsh-plugin-archived-conversations",
+  "version": "0.1.0",
+  "description": "DeepSeek Harness 插件：在设置界面管理已归档对话——取消归档与永久删除。DeepSeek Harness plugin: manage archived conversations in Settings — unarchive and permanently delete.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./typert": "./lib/typert.js",
+    "./client": "./client/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "client",
+    "DESIGN.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-typert-protocol": "^0.1.2-alpha.1",
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh-api-workspace-controller": "^0.1.2-alpha.1",
+    "@deepseek-ai/dsh-client-locale": "^0.1.2-alpha.1",
+    "@deepseek-ai/dsh-client-ui-primitives": "^0.1.2-alpha.1",
+    "@deepseek-ai/dsh-client-ui-settings": "^0.1.2-alpha.1",
+    "react": "^18.3.1"
+  },
+  "dsh": {
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-api-workspace-controller",
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-primitives",
+        "@deepseek-ai/dsh-client-ui-settings"
+      ],
+      "platform": "web"
+    }
+  }
+}

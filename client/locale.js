@@ -1,0 +1,71 @@
+/**
+ * dsh-plugin-archived-conversations — locale dictionaries.
+ *
+ * Registered under the `archived-conversations` namespace; every shipped
+ * locale must carry the complete key set (bilingual balance is enforced at
+ * registration).
+ *
+ * @module dsh-plugin-archived-conversations/client/locale
+ */
+
+export const zh = {
+  nav: "已归档对话",
+  heading: "已归档对话",
+  description: "归档的对话不会出现在侧边栏中。你可以在这里取消归档（恢复显示），或永久删除。",
+  countLabel: "共 {n} 个已归档对话",
+  untitled: "未命名对话",
+  noWorkspace: "未关联工作区",
+  lastActivity: "最近活动",
+  "time.now": "刚刚",
+  "time.minutes": "{n} 分钟前",
+  "time.hours": "{n} 小时前",
+  "time.days": "{n} 天前",
+  "time.months": "{n} 个月前",
+  "time.years": "{n} 年前",
+  readErrorLabel: "无法读取：{error}",
+  unarchive: "取消归档",
+  delete: "删除",
+  unarchiveAll: "全部取消归档",
+  cancel: "取消",
+  retry: "重试",
+  empty: "没有已归档的对话",
+  errorLabel: "加载失败：{error}",
+  confirmTitle: "永久删除对话",
+  confirmDescription: "即将永久删除「{title}」。其全部消息记录与日志文件都会被移除，此操作无法撤销。",
+  acknowledge: "我明白此操作不可恢复",
+  confirmDelete: "确认删除",
+  unarchived: "已取消归档，对话已恢复到侧边栏",
+  deleted: "对话已永久删除",
+  unarchivePartiallyFailed: "{n} 个对话取消失败，其余已完成"
+};
+
+export const en = {
+  nav: "Archived conversations",
+  heading: "Archived conversations",
+  description: "Archived conversations stay out of the sidebar. Restore them here, or delete them permanently.",
+  countLabel: "{n} archived conversation(s)",
+  untitled: "Untitled conversation",
+  noWorkspace: "No workspace",
+  lastActivity: "Last activity",
+  "time.now": "just now",
+  "time.minutes": "{n} min ago",
+  "time.hours": "{n} h ago",
+  "time.days": "{n} d ago",
+  "time.months": "{n} mo ago",
+  "time.years": "{n} y ago",
+  readErrorLabel: "Unreadable: {error}",
+  unarchive: "Unarchive",
+  delete: "Delete",
+  unarchiveAll: "Unarchive all",
+  cancel: "Cancel",
+  retry: "Retry",
+  empty: "No archived conversations",
+  errorLabel: "Failed to load: {error}",
+  confirmTitle: "Delete conversation permanently",
+  confirmDescription: "This permanently deletes “{title}”. All messages and log files will be removed. This cannot be undone.",
+  acknowledge: "I understand this cannot be undone",
+  confirmDelete: "Delete permanently",
+  unarchived: "Conversation restored to the sidebar",
+  deleted: "Conversation deleted permanently",
+  unarchivePartiallyFailed: "{n} conversation(s) failed to unarchive; the rest were restored"
+};
