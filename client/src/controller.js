@@ -140,13 +140,18 @@ export class ArchivedConversationsController {
     }
   }
 
-  /** Unarchive every listed conversation in one host-side registry write. */
-  async unarchiveAll() {
-    const ids = this.#snapshot.items.map((item) => item.sessionId);
+  /**
+   * Unarchive every listed conversation in one host-side registry write.
+   * @param cwd - optional project scope (undefined = everything).
+   */
+  async unarchiveAll(cwd) {
+    const ids = this.#snapshot.items
+      .filter((item) => cwd === undefined || (item.cwd ?? "") === cwd)
+      .map((item) => item.sessionId);
     if (ids.length === 0) return;
     this.#emit({ pending: new Set(ids) });
     try {
-      const result = await archivedRemote(this.#ctx).unarchiveAll();
+      const result = await archivedRemote(this.#ctx).unarchiveAll(cwd === undefined ? {} : { cwd });
       this.#emit({ pending: new Set() });
       if (!result.ok) {
         this.#emit({ message: { kind: "error", text: errorText(result) } });
@@ -180,13 +185,18 @@ export class ArchivedConversationsController {
     }
   }
 
-  /** Permanently delete every listed conversation (host-side sweep). */
-  async deleteAll() {
-    const ids = this.#snapshot.items.map((item) => item.sessionId);
+  /**
+   * Permanently delete every listed conversation (host-side sweep).
+   * @param cwd - optional project scope (undefined = everything).
+   */
+  async deleteAll(cwd) {
+    const ids = this.#snapshot.items
+      .filter((item) => cwd === undefined || (item.cwd ?? "") === cwd)
+      .map((item) => item.sessionId);
     if (ids.length === 0) return;
     this.#emit({ pending: new Set(ids) });
     try {
-      const result = await archivedRemote(this.#ctx).deleteAll();
+      const result = await archivedRemote(this.#ctx).deleteAll(cwd === undefined ? {} : { cwd });
       this.#emit({ pending: new Set() });
       if (!result.ok) {
         this.#emit({ message: { kind: "error", text: errorText(result) } });

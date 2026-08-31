@@ -45,7 +45,8 @@ async function apply(ctx) {
     locale: NS,
     inject: () => ({
       page,
-      t: ctx.locale.bind(NS)
+      t: ctx.locale.bind(NS),
+      readLocale: () => ctx.locale.getLocale().active
     })
   }, ArchivedConversationsPage));
 

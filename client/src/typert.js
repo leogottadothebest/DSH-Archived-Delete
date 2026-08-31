@@ -19,9 +19,13 @@ const archivedSessionItem = z.object({
   cwd: z.string().nullable(),
   createdAt: z.number().nullable(),
   updatedAt: z.number().nullable(),
+  archivedAt: z.number().nullable(),
   running: z.boolean(),
   readError: z.string().nullable()
 });
+
+/** Bulk operations accept an optional project (cwd) scope. */
+const bulkRequest = z.object({ cwd: z.string().optional() });
 
 const listValue = z.object({ items: z.array(archivedSessionItem), archivedSessionIds });
 const archivedIdsValue = z.object({ sessionId, archivedSessionIds });
@@ -73,8 +77,18 @@ export const TYPERT_REMOTE = {
       true,
       deleteValue
     ),
-    descriptor("unarchiveAll", [], true, unarchiveAllValue),
-    descriptor("deleteAll", [], true, deleteAllValue)
+    descriptor(
+      "unarchiveAll",
+      [jsonParameter("dsh-plugin-archived-conversations#archivedSessions/unarchiveAll:request", bulkRequest)],
+      true,
+      unarchiveAllValue
+    ),
+    descriptor(
+      "deleteAll",
+      [jsonParameter("dsh-plugin-archived-conversations#archivedSessions/deleteAll:request", bulkRequest)],
+      true,
+      deleteAllValue
+    )
   ]
 };
 

@@ -74,7 +74,9 @@ const css = `
   flex: none;
 }
 
-.dshAcv-toolbar .dshAcv-dangerButton {
+.dshAcv-toolbar .dshAcv-dangerButton,
+.dshAcv .dshAcv-dangerButton,
+.dshAcv .dshAcv-dangerButton:hover {
   color: var(--dsw-alias-label-error);
 }
 
@@ -137,6 +139,27 @@ const css = `
 .dshAcv-groupCount {
   flex: none;
   color: var(--dsw-alias-label-tertiary);
+}
+
+.dshAcv-groupMenu {
+  flex: none;
+  margin-left: auto;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dsw-alias-label-tertiary);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 0;
+}
+
+.dshAcv-groupMenu:hover {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
 }
 
 .dshAcv-list {
@@ -204,7 +227,7 @@ const css = `
   flex-shrink: 0;
 }
 
-.dshAcv-rowActions .dshAcv-dangerButton {
+.dshAcv-rowActions .dshAcv-dangerButton:hover {
   color: var(--dsw-alias-label-error);
 }
 

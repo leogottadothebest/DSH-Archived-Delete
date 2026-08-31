@@ -1,12 +1,15 @@
 /**
  * dsh-plugin-archived-conversations — settings page.
  *
- * Rendered inside a `settings.section` entry; receives the page controller
- * and the locale-bound translate function through the slot inject surface.
+ * Rendered inside a `settings.section` entry; receives the page controller,
+ * the locale-bound translate function, and the active-locale reader through
+ * the slot inject surface.
  *
- * Layout follows the DSH settings design language: a heading with an icon
- * chip, a right-aligned action toolbar, and project-grouped rows (like the
- * sidebar's workspace grouping) rendered with the `--dsw-alias-*` tokens.
+ * Layout follows the DSH settings design language: project-grouped rows
+ * (like the sidebar's workspace grouping) with per-project overflow menus,
+ * rendered with the `--dsw-alias-*` tokens. Rows show the archive time —
+ * the moment the conversation entered the archive set — in the local
+ * date/time format.
  *
  * @module dsh-plugin-archived-conversations/client/page
  */
@@ -16,17 +19,29 @@ import { jsx, jsxs } from "react/jsx-runtime";
 import {
   Button,
   IconArchiveOutline20,
+  IconEllipsisOutline16,
   IconFolderClose16,
   IconTrashOutline16,
-  RiskConfirmation,
-  relativeTime
+  Menu,
+  RiskConfirmation
 } from "@deepseek-ai/dsh-client-ui-primitives";
 
-/** Format one epoch-ms timestamp as a localized relative label. */
-function formatWhen(at, t) {
-  const when = relativeTime(at, Date.now());
-  if (when.unit === "now") return t("time.now");
-  return t(`time.${when.unit}`).replace("{n}", String(when.n));
+/** Format an absolute archive time in the local convention (zh: 2026年8月11日，14:17). */
+function formatArchiveTime(at, lang) {
+  if (at === null) return null;
+  const date = new Date(at);
+  if (lang.startsWith("zh")) {
+    const hh = String(date.getHours()).padStart(2, "0");
+    const mm = String(date.getMinutes()).padStart(2, "0");
+    return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日，${hh}:${mm}`;
+  }
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
 }
 
 /** Split the archived rows into project groups, preserving archive order. */
@@ -56,10 +71,10 @@ function projectTitle(path, projects, t) {
   return segments.length > 0 ? segments[segments.length - 1] : path;
 }
 
-/** One conversation row: identity, meta, unarchive/delete actions. */
-function ArchivedRow({ item, t, pending, onUnarchive, onDelete }) {
+/** One conversation row: identity, archive time, unarchive/delete actions. */
+function ArchivedRow({ item, t, lang, pending, onUnarchive, onDelete }) {
   const title = item.title ?? t("untitled");
-  const when = item.updatedAt !== null ? `${t("lastActivity")} · ${formatWhen(item.updatedAt, t)}` : "";
+  const when = formatArchiveTime(item.archivedAt, lang);
   const busy = pending;
 
   return jsx("li", {
@@ -72,7 +87,7 @@ function ArchivedRow({ item, t, pending, onUnarchive, onDelete }) {
           jsxs("div", {
             className: "dshAcv-rowMeta",
             children: [
-              when !== "" && jsx("span", { children: when }),
+              jsx("span", { children: when ?? t("timeUnknown") }),
               item.readError !== null && jsx("span", {
                 className: "dshAcv-rowError",
                 children: t("readErrorLabel").replace("{error}", item.readError)
@@ -107,8 +122,23 @@ function ArchivedRow({ item, t, pending, onUnarchive, onDelete }) {
   });
 }
 
-/** One project group: header (folder icon + title + count) over its rows. */
-function ProjectGroup({ group, projects, t, pending, onUnarchive, onDelete }) {
+/** One project group: header (folder icon + title + count + overflow menu) over its rows. */
+function ProjectGroup({ group, projects, t, lang, pending, onUnarchive, onDelete, onUnarchiveAll, onDeleteAll }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const title = projectTitle(group.path, projects, t);
+  const items = [
+    {
+      id: "unarchive",
+      label: t("unarchiveAll"),
+      icon: jsx(IconArchiveOutline20, { size: 14 })
+    },
+    {
+      id: "delete",
+      label: t("deleteAll"),
+      icon: jsx(IconTrashOutline16, {})
+    }
+  ];
+
   return jsxs("section", {
     className: "dshAcv-group",
     children: [
@@ -122,11 +152,33 @@ function ProjectGroup({ group, projects, t, pending, onUnarchive, onDelete }) {
           jsx("span", {
             className: "dshAcv-groupTitle",
             title: group.path === "" ? undefined : group.path,
-            children: projectTitle(group.path, projects, t)
+            children: title
           }),
           jsx("span", {
             className: "dshAcv-groupCount",
             children: String(group.items.length)
+          }),
+          jsx(Menu, {
+            open: menuOpen,
+            onClose: () => setMenuOpen(false),
+            items,
+            onSelect: (id) => {
+              setMenuOpen(false);
+              if (id === "unarchive") onUnarchiveAll(group);
+              else if (id === "delete") onDeleteAll(group);
+            },
+            portal: true,
+            closeOnPointerLeave: true,
+            anchor: jsx("button", {
+              type: "button",
+              className: "dshAcv-groupMenu",
+              "aria-label": t("groupMenuAria").replace("{name}", title),
+              onClick: (event) => {
+                event.stopPropagation();
+                setMenuOpen((open) => !open);
+              },
+              children: jsx(IconEllipsisOutline16, {})
+            })
           })
         ]
       }),
@@ -135,6 +187,7 @@ function ProjectGroup({ group, projects, t, pending, onUnarchive, onDelete }) {
         children: group.items.map((item) => jsx(ArchivedRow, {
           item,
           t,
+          lang,
           pending: pending.has(item.sessionId),
           onUnarchive,
           onDelete
@@ -148,13 +201,15 @@ function ProjectGroup({ group, projects, t, pending, onUnarchive, onDelete }) {
  * The archived-conversations settings page.
  * @param page - {@link ArchivedConversationsController}.
  * @param t - locale-bound translate function for this plugin's namespace.
+ * @param readLocale - reader for the active locale id.
  */
-export function ArchivedConversationsPage({ page, t }) {
+export function ArchivedConversationsPage({ page, t, readLocale }) {
   const snapshot = useSyncExternalStore(page.subscribe, page.getSnapshot, page.getSnapshot);
   const [confirmItem, setConfirmItem] = useState(null);
-  const [navIconPortal, setNavIconPortal] = useState(null);
-  const [confirmAll, setConfirmAll] = useState(false);
+  const [confirmAll, setConfirmAll] = useState(null);
   const [acknowledged, setAcknowledged] = useState(false);
+  const [navIconPortal, setNavIconPortal] = useState(null);
+  const lang = readLocale() ?? "en";
 
   // Reset the confirmation dialog whenever its target changes or closes.
   useEffect(() => {
@@ -215,9 +270,20 @@ export function ArchivedConversationsPage({ page, t }) {
   };
 
   const onConfirmBulkDelete = async () => {
-    setConfirmAll(false);
+    if (confirmAll === null) return;
+    const cwd = confirmAll.cwd;
+    setConfirmAll(null);
     setAcknowledged(false);
-    await page.deleteAll();
+    await page.deleteAll(cwd);
+  };
+
+  const openBulkConfirm = (group) => {
+    setConfirmAll({
+      cwd: group.path === "" ? undefined : group.path,
+      title: projectTitle(group.path, snapshot.projects, t),
+      count: group.items.length
+    });
+    setAcknowledged(false);
   };
 
   return jsxs("div", {
@@ -228,18 +294,9 @@ export function ArchivedConversationsPage({ page, t }) {
         className: "dshAcv-header",
         children: [
           jsxs("div", {
-            className: "dshAcv-heading",
             children: [
-              jsx("span", {
-                className: "dshAcv-headingIcon",
-                children: jsx(IconArchiveOutline20, { size: 18 })
-              }),
-              jsxs("div", {
-                children: [
-                  jsx("h2", { className: "dshAcv-title", children: t("heading") }),
-                  jsx("p", { className: "dshAcv-description", children: t("description") })
-                ]
-              })
+              jsx("h2", { className: "dshAcv-title", children: t("heading") }),
+              jsx("p", { className: "dshAcv-description", children: t("description") })
             ]
           }),
           jsxs("div", {
@@ -250,7 +307,7 @@ export function ArchivedConversationsPage({ page, t }) {
                 size: "sm",
                 disabled: snapshot.phase !== "ready" || snapshot.items.length === 0 || busyCount > 0,
                 icon: jsx(IconArchiveOutline20, { size: 14 }),
-                onClick: () => void page.unarchiveAll(),
+                onClick: () => void page.unarchiveAll(undefined),
                 children: t("unarchiveAll")
               }),
               jsx(Button, {
@@ -260,7 +317,7 @@ export function ArchivedConversationsPage({ page, t }) {
                 className: "dshAcv-dangerButton",
                 icon: jsx(IconTrashOutline16, {}),
                 onClick: () => {
-                  setConfirmAll(true);
+                  setConfirmAll({ cwd: undefined, title: t("heading"), count: snapshot.items.length });
                   setAcknowledged(false);
                 },
                 children: t("deleteAll")
@@ -308,12 +365,15 @@ export function ArchivedConversationsPage({ page, t }) {
           group,
           projects: snapshot.projects,
           t,
+          lang,
           pending: snapshot.pending,
           onUnarchive: (sessionId) => void page.unarchive(sessionId),
           onDelete: (item) => {
             setConfirmItem(item);
             setAcknowledged(false);
-          }
+          },
+          onUnarchiveAll: (target) => void page.unarchiveAll(target.path === "" ? undefined : target.path),
+          onDeleteAll: openBulkConfirm
         }, group.path === "" ? "__ungrouped__" : group.path))
       }),
 
@@ -336,9 +396,11 @@ export function ArchivedConversationsPage({ page, t }) {
       }),
 
       jsx(RiskConfirmation, {
-        open: confirmAll,
+        open: confirmAll !== null,
         title: t("confirmAllTitle"),
-        description: t("confirmAllDescription").replace("{n}", String(snapshot.items.length)),
+        description: confirmAll !== null && confirmAll.cwd !== undefined
+          ? t("confirmProjectDescription").replace("{title}", confirmAll.title).replace("{n}", String(confirmAll.count))
+          : t("confirmAllDescription").replace("{n}", String(snapshot.items.length)),
         acknowledgeLabel: t("acknowledge"),
         cancelLabel: t("cancel"),
         closeLabel: t("cancel"),
@@ -347,7 +409,7 @@ export function ArchivedConversationsPage({ page, t }) {
         disabled: snapshot.pending.size > 0,
         onAcknowledgedChange: setAcknowledged,
         onCancel: () => {
-          setConfirmAll(false);
+          setConfirmAll(null);
           setAcknowledged(false);
         },
         onConfirm: () => void onConfirmBulkDelete()
