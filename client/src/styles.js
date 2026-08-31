@@ -1,10 +1,10 @@
 /**
  * dsh-plugin-archived-conversations — page styles.
  *
- * One injected <style> element scoped by the `dshAcv-` class prefix; theme
- * colors ride the settings panel's inherited palette (currentColor +
- * CSS variables with graceful fallbacks), so light and dark themes work
- * without a theme dependency.
+ * One injected <style> element scoped by the `dshAcv-` class prefix. All
+ * colors and radii ride the DSH design tokens (`--dsw-alias-*`), so the
+ * page inherits the application's theme, density, and light/dark handling
+ * instead of defining its own palette.
  *
  * @module dsh-plugin-archived-conversations/client/styles
  */
@@ -15,7 +15,7 @@ const css = `
 .dshAcv {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   min-width: 0;
 }
 
@@ -28,30 +28,115 @@ const css = `
 
 .dshAcv-heading {
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dshAcv-headingIcon {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-module-platform);
+  border: 1px solid var(--dsw-alias-border-l2);
 }
 
 .dshAcv-title {
-  margin: 0 0 4px;
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.4;
+  margin: 0 0 2px;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+  color: var(--dsw-alias-label-primary);
 }
 
 .dshAcv-description {
   margin: 0;
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: color-mix(in srgb, currentColor 62%, transparent);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
 }
 
-.dshAcv-count {
-  margin: 0 0 6px;
-  font-size: 11.5px;
-  color: color-mix(in srgb, currentColor 55%, transparent);
+.dshAcv-navIcon {
+  flex: none;
+  display: inline-flex;
+  color: inherit;
+}
+
+.dshAcv-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.dshAcv-toolbar .dshAcv-dangerButton {
+  color: var(--dsw-alias-label-error);
+}
+
+.dshAcv-banner {
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  line-height: 18px;
+  border: 1px solid transparent;
+}
+
+.dshAcv-banner-success {
+  color: var(--dsw-alias-state-success-primary);
+  border-color: var(--dsw-alias-state-success-secondary);
+  background: color-mix(in srgb, var(--dsw-alias-state-success-primary) 8%, transparent);
+}
+
+.dshAcv-banner-error {
+  color: var(--dsw-alias-state-error-primary);
+  border-color: var(--dsw-alias-state-error-secondary);
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 8%, transparent);
 }
 
 .dshAcv-listWrap {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dshAcv-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dshAcv-groupHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 2px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.dshAcv-groupIcon {
+  flex: none;
+  display: inline-flex;
+  color: var(--dsw-alias-label-dimmed);
+}
+
+.dshAcv-groupTitle {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dshAcv-groupCount {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
 }
 
 .dshAcv-list {
@@ -69,15 +154,14 @@ const css = `
   justify-content: space-between;
   gap: 12px;
   padding: 10px 12px;
-  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, currentColor 3%, transparent);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 12px;
+  background: var(--dsw-alias-bg-module-platform);
   transition: border-color 120ms ease, background-color 120ms ease;
 }
 
 .dshAcv-row:hover {
-  border-color: color-mix(in srgb, currentColor 24%, transparent);
-  background: color-mix(in srgb, currentColor 5%, transparent);
+  border-color: var(--dsw-alias-border-l3);
 }
 
 .dshAcv-rowMain {
@@ -89,9 +173,10 @@ const css = `
 }
 
 .dshAcv-rowTitle {
-  font-size: 13px;
-  font-weight: 550;
-  line-height: 1.4;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+  color: var(--dsw-alias-label-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -101,20 +186,15 @@ const css = `
   display: flex;
   flex-wrap: wrap;
   gap: 4px 10px;
-  font-size: 11.5px;
-  color: color-mix(in srgb, currentColor 58%, transparent);
-}
-
-.dshAcv-rowCwd {
-  max-width: 34em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
 }
 
 .dshAcv-rowError {
-  font-size: 11.5px;
-  color: #d97706;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-state-warn-primary);
 }
 
 .dshAcv-rowActions {
@@ -124,28 +204,8 @@ const css = `
   flex-shrink: 0;
 }
 
-.dshAcv-danger {
-  color: #dc2626;
-}
-
-.dshAcv-banner {
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 12.5px;
-  line-height: 1.5;
-  border: 1px solid transparent;
-}
-
-.dshAcv-banner-success {
-  color: #15803d;
-  border-color: color-mix(in srgb, #15803d 30%, transparent);
-  background: color-mix(in srgb, #15803d 9%, transparent);
-}
-
-.dshAcv-banner-error {
-  color: #b91c1c;
-  border-color: color-mix(in srgb, #b91c1c 30%, transparent);
-  background: color-mix(in srgb, #b91c1c 9%, transparent);
+.dshAcv-rowActions .dshAcv-dangerButton {
+  color: var(--dsw-alias-label-error);
 }
 
 .dshAcv-state {
@@ -154,26 +214,27 @@ const css = `
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 36px 16px;
+  padding: 48px 16px;
   text-align: center;
 }
 
 .dshAcv-stateIcon {
-  color: color-mix(in srgb, currentColor 40%, transparent);
+  color: var(--dsw-alias-label-dimmed);
 }
 
 .dshAcv-stateText {
   margin: 0;
-  font-size: 12.5px;
-  color: color-mix(in srgb, currentColor 62%, transparent);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
 }
 
 .dshAcv-spinner {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  border: 2px solid color-mix(in srgb, currentColor 18%, transparent);
-  border-top-color: currentColor;
+  border: 2px solid var(--dsw-alias-border-l2);
+  border-top-color: var(--dsw-alias-brand-primary);
   animation: dshAcvSpin 700ms linear infinite;
 }
 
@@ -182,6 +243,9 @@ const css = `
 }
 
 @media (max-width: 560px) {
+  .dshAcv-header {
+    flex-direction: column;
+  }
   .dshAcv-row {
     flex-direction: column;
   }

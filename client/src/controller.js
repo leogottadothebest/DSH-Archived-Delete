@@ -6,12 +6,20 @@
  * watched through the client `workspaces` service, so archiving a
  * conversation from the sidebar refreshes this page live; the reverse is
  * true after unarchive because the workspace feed replays the registry
- * change.
+ * change. The same service supplies workspace titles, which the page uses
+ * to group archived conversations by project.
  *
  * @module dsh-plugin-archived-conversations/client/controller
  */
 
-const IDLE = { phase: "loading", items: [], archivedSessionIds: [], message: null, pending: new Set() };
+const IDLE = {
+  phase: "loading",
+  items: [],
+  archivedSessionIds: [],
+  projects: {},
+  message: null,
+  pending: new Set()
+};
 
 /**
  * Remote namespace accessor resolved lazily: the namespace service exists
@@ -59,6 +67,14 @@ export class ArchivedConversationsController {
     for (const listener of [...this.#listeners]) listener();
   }
 
+  /** Workspace path → workspace title (the page's project grouping source). */
+  #readProjects() {
+    const items = this.#ctx.get("workspaces")?.list?.getSnapshot?.()?.items ?? [];
+    const projects = {};
+    for (const workspace of items) projects[workspace.path] = workspace.title;
+    return projects;
+  }
+
   /** Live archive-set watch: refresh whenever the set changes elsewhere. */
   #watchArchiveSet(ctx) {
     const workspaces = ctx.get("workspaces");
@@ -80,7 +96,7 @@ export class ArchivedConversationsController {
     this.#emit({ pending });
   }
 
-  /** Reload the archived list. */
+  /** Reload the archived list and the project title map. */
   async refresh() {
     if (this.#disposed) return;
     this.#emit({ phase: "loading" });
@@ -91,7 +107,13 @@ export class ArchivedConversationsController {
         this.#emit({ phase: "error", message: { kind: "error", text: errorText(result) } });
         return;
       }
-      this.#emit({ phase: "ready", items: result.value.items, archivedSessionIds: result.value.archivedSessionIds, message: null });
+      this.#emit({
+        phase: "ready",
+        items: result.value.items,
+        archivedSessionIds: result.value.archivedSessionIds,
+        projects: this.#readProjects(),
+        message: null
+      });
     } catch (error) {
       if (this.#disposed) return;
       this.#emit({ phase: "error", message: { kind: "error", text: error instanceof Error ? error.message : String(error) } });
@@ -103,8 +125,8 @@ export class ArchivedConversationsController {
     this.#pending(sessionId, true);
     try {
       const result = await archivedRemote(this.#ctx).unarchive({ sessionId });
+      this.#pending(sessionId, false);
       if (!result.ok) {
-        this.#pending(sessionId, false);
         this.#emit({ message: { kind: "error", text: errorText(result) } });
         return false;
       }
@@ -118,26 +140,24 @@ export class ArchivedConversationsController {
     }
   }
 
-  /** Unarchive every listed conversation, sequentially, one refresh at the end. */
+  /** Unarchive every listed conversation in one host-side registry write. */
   async unarchiveAll() {
     const ids = this.#snapshot.items.map((item) => item.sessionId);
     if (ids.length === 0) return;
     this.#emit({ pending: new Set(ids) });
-    let failed = 0;
-    for (const sessionId of ids) {
-      try {
-        const result = await archivedRemote(this.#ctx).unarchive({ sessionId });
-        if (!result.ok) failed += 1;
-      } catch {
-        failed += 1;
+    try {
+      const result = await archivedRemote(this.#ctx).unarchiveAll();
+      this.#emit({ pending: new Set() });
+      if (!result.ok) {
+        this.#emit({ message: { kind: "error", text: errorText(result) } });
+        return;
       }
+      await this.refresh();
+      this.#emit({ message: { kind: "success", key: "unarchived" } });
+    } catch (error) {
+      this.#emit({ pending: new Set() });
+      this.#emit({ message: { kind: "error", text: error instanceof Error ? error.message : String(error) } });
     }
-    await this.refresh();
-    this.#emit({
-      message: failed === 0
-        ? { kind: "success", key: "unarchived" }
-        : { kind: "error", key: "unarchivePartiallyFailed", failed }
-    });
   }
 
   /** Permanently delete one archived conversation. */
@@ -145,8 +165,8 @@ export class ArchivedConversationsController {
     this.#pending(sessionId, true);
     try {
       const result = await archivedRemote(this.#ctx).deleteSession({ sessionId });
+      this.#pending(sessionId, false);
       if (!result.ok) {
-        this.#pending(sessionId, false);
         this.#emit({ message: { kind: "error", text: errorText(result) } });
         return false;
       }
@@ -157,6 +177,30 @@ export class ArchivedConversationsController {
       this.#pending(sessionId, false);
       this.#emit({ message: { kind: "error", text: error instanceof Error ? error.message : String(error) } });
       return false;
+    }
+  }
+
+  /** Permanently delete every listed conversation (host-side sweep). */
+  async deleteAll() {
+    const ids = this.#snapshot.items.map((item) => item.sessionId);
+    if (ids.length === 0) return;
+    this.#emit({ pending: new Set(ids) });
+    try {
+      const result = await archivedRemote(this.#ctx).deleteAll();
+      this.#emit({ pending: new Set() });
+      if (!result.ok) {
+        this.#emit({ message: { kind: "error", text: errorText(result) } });
+        return;
+      }
+      await this.refresh();
+      this.#emit({
+        message: result.value.deleted === ids.length
+          ? { kind: "success", key: "deletedAll", deleted: result.value.deleted }
+          : { kind: "error", key: "deletePartiallyFailed", deleted: result.value.deleted }
+      });
+    } catch (error) {
+      this.#emit({ pending: new Set() });
+      this.#emit({ message: { kind: "error", text: error instanceof Error ? error.message : String(error) } });
     }
   }
 

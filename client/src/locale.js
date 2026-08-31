@@ -26,6 +26,7 @@ export const zh = {
   unarchive: "取消归档",
   delete: "删除",
   unarchiveAll: "全部取消归档",
+  deleteAll: "全部删除",
   cancel: "取消",
   retry: "重试",
   empty: "没有已归档的对话",
@@ -34,8 +35,13 @@ export const zh = {
   confirmDescription: "即将永久删除「{title}」。其全部消息记录与日志文件都会被移除，此操作无法撤销。",
   acknowledge: "我明白此操作不可恢复",
   confirmDelete: "确认删除",
+  confirmAllTitle: "永久删除全部对话",
+  confirmAllDescription: "即将永久删除全部 {n} 个已归档对话。它们的消息记录与日志文件都会被移除，此操作无法撤销。",
+  confirmDeleteAll: "全部永久删除",
   unarchived: "已取消归档，对话已恢复到侧边栏",
   deleted: "对话已永久删除",
+  deletedAll: "已永久删除 {n} 个对话",
+  deletePartiallyFailed: "已删除 {n} 个对话，其余删除失败",
   unarchivePartiallyFailed: "{n} 个对话取消失败，其余已完成"
 };
 
@@ -57,6 +63,7 @@ export const en = {
   unarchive: "Unarchive",
   delete: "Delete",
   unarchiveAll: "Unarchive all",
+  deleteAll: "Delete all",
   cancel: "Cancel",
   retry: "Retry",
   empty: "No archived conversations",
@@ -65,7 +72,12 @@ export const en = {
   confirmDescription: "This permanently deletes “{title}”. All messages and log files will be removed. This cannot be undone.",
   acknowledge: "I understand this cannot be undone",
   confirmDelete: "Delete permanently",
+  confirmAllTitle: "Delete all conversations permanently",
+  confirmAllDescription: "This permanently deletes all {n} archived conversations. Their messages and log files will be removed. This cannot be undone.",
+  confirmDeleteAll: "Delete all permanently",
   unarchived: "Conversation restored to the sidebar",
   deleted: "Conversation deleted permanently",
+  deletedAll: "{n} conversation(s) deleted permanently",
+  deletePartiallyFailed: "{n} conversation(s) deleted; the rest failed",
   unarchivePartiallyFailed: "{n} conversation(s) failed to unarchive; the rest were restored"
 };

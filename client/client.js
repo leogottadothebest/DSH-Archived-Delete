@@ -18912,6 +18912,8 @@ var archivedSessionItem = external_exports.object({
 var listValue = external_exports.object({ items: external_exports.array(archivedSessionItem), archivedSessionIds });
 var archivedIdsValue = external_exports.object({ sessionId, archivedSessionIds });
 var deleteValue = external_exports.object({ sessionId, deleted: external_exports.boolean() });
+var unarchiveAllValue = external_exports.object({ archivedSessionIds });
+var deleteAllValue = external_exports.object({ deleted: external_exports.number().int().nonnegative(), archivedSessionIds });
 var codec2 = (typeSymbol, schema) => ({ mode: "strict", typeSymbol, schema });
 var jsonParameter = (typeSymbol, schema) => ({
   name: "request",
@@ -18953,12 +18955,21 @@ var TYPERT_REMOTE = {
       [jsonParameter("dsh-plugin-archived-conversations#archivedSessions/deleteSession:request", sessionIdRequest)],
       true,
       deleteValue
-    )
+    ),
+    descriptor("unarchiveAll", [], true, unarchiveAllValue),
+    descriptor("deleteAll", [], true, deleteAllValue)
   ]
 };
 
 // client/src/controller.js
-var IDLE = { phase: "loading", items: [], archivedSessionIds: [], message: null, pending: /* @__PURE__ */ new Set() };
+var IDLE = {
+  phase: "loading",
+  items: [],
+  archivedSessionIds: [],
+  projects: {},
+  message: null,
+  pending: /* @__PURE__ */ new Set()
+};
 function archivedRemote(ctx) {
   const remote = ctx.get("remote.archivedSessions");
   if (remote === void 0) throw new Error("archived-conversations: remote.archivedSessions is not mounted");
@@ -18993,6 +19004,13 @@ var ArchivedConversationsController = class {
     this.#snapshot = { ...this.#snapshot, ...patch };
     for (const listener of [...this.#listeners]) listener();
   }
+  /** Workspace path → workspace title (the page's project grouping source). */
+  #readProjects() {
+    const items = this.#ctx.get("workspaces")?.list?.getSnapshot?.()?.items ?? [];
+    const projects = {};
+    for (const workspace of items) projects[workspace.path] = workspace.title;
+    return projects;
+  }
   /** Live archive-set watch: refresh whenever the set changes elsewhere. */
   #watchArchiveSet(ctx) {
     const workspaces = ctx.get("workspaces");
@@ -19013,7 +19031,7 @@ var ArchivedConversationsController = class {
     else pending.delete(sessionId2);
     this.#emit({ pending });
   }
-  /** Reload the archived list. */
+  /** Reload the archived list and the project title map. */
   async refresh() {
     if (this.#disposed) return;
     this.#emit({ phase: "loading" });
@@ -19024,7 +19042,13 @@ var ArchivedConversationsController = class {
         this.#emit({ phase: "error", message: { kind: "error", text: errorText(result) } });
         return;
       }
-      this.#emit({ phase: "ready", items: result.value.items, archivedSessionIds: result.value.archivedSessionIds, message: null });
+      this.#emit({
+        phase: "ready",
+        items: result.value.items,
+        archivedSessionIds: result.value.archivedSessionIds,
+        projects: this.#readProjects(),
+        message: null
+      });
     } catch (error61) {
       if (this.#disposed) return;
       this.#emit({ phase: "error", message: { kind: "error", text: error61 instanceof Error ? error61.message : String(error61) } });
@@ -19035,8 +19059,8 @@ var ArchivedConversationsController = class {
     this.#pending(sessionId2, true);
     try {
       const result = await archivedRemote(this.#ctx).unarchive({ sessionId: sessionId2 });
+      this.#pending(sessionId2, false);
       if (!result.ok) {
-        this.#pending(sessionId2, false);
         this.#emit({ message: { kind: "error", text: errorText(result) } });
         return false;
       }
@@ -19049,32 +19073,32 @@ var ArchivedConversationsController = class {
       return false;
     }
   }
-  /** Unarchive every listed conversation, sequentially, one refresh at the end. */
+  /** Unarchive every listed conversation in one host-side registry write. */
   async unarchiveAll() {
     const ids = this.#snapshot.items.map((item) => item.sessionId);
     if (ids.length === 0) return;
     this.#emit({ pending: new Set(ids) });
-    let failed = 0;
-    for (const sessionId2 of ids) {
-      try {
-        const result = await archivedRemote(this.#ctx).unarchive({ sessionId: sessionId2 });
-        if (!result.ok) failed += 1;
-      } catch {
-        failed += 1;
+    try {
+      const result = await archivedRemote(this.#ctx).unarchiveAll();
+      this.#emit({ pending: /* @__PURE__ */ new Set() });
+      if (!result.ok) {
+        this.#emit({ message: { kind: "error", text: errorText(result) } });
+        return;
       }
+      await this.refresh();
+      this.#emit({ message: { kind: "success", key: "unarchived" } });
+    } catch (error61) {
+      this.#emit({ pending: /* @__PURE__ */ new Set() });
+      this.#emit({ message: { kind: "error", text: error61 instanceof Error ? error61.message : String(error61) } });
     }
-    await this.refresh();
-    this.#emit({
-      message: failed === 0 ? { kind: "success", key: "unarchived" } : { kind: "error", key: "unarchivePartiallyFailed", failed }
-    });
   }
   /** Permanently delete one archived conversation. */
   async deleteSession(sessionId2) {
     this.#pending(sessionId2, true);
     try {
       const result = await archivedRemote(this.#ctx).deleteSession({ sessionId: sessionId2 });
+      this.#pending(sessionId2, false);
       if (!result.ok) {
-        this.#pending(sessionId2, false);
         this.#emit({ message: { kind: "error", text: errorText(result) } });
         return false;
       }
@@ -19085,6 +19109,27 @@ var ArchivedConversationsController = class {
       this.#pending(sessionId2, false);
       this.#emit({ message: { kind: "error", text: error61 instanceof Error ? error61.message : String(error61) } });
       return false;
+    }
+  }
+  /** Permanently delete every listed conversation (host-side sweep). */
+  async deleteAll() {
+    const ids = this.#snapshot.items.map((item) => item.sessionId);
+    if (ids.length === 0) return;
+    this.#emit({ pending: new Set(ids) });
+    try {
+      const result = await archivedRemote(this.#ctx).deleteAll();
+      this.#emit({ pending: /* @__PURE__ */ new Set() });
+      if (!result.ok) {
+        this.#emit({ message: { kind: "error", text: errorText(result) } });
+        return;
+      }
+      await this.refresh();
+      this.#emit({
+        message: result.value.deleted === ids.length ? { kind: "success", key: "deletedAll", deleted: result.value.deleted } : { kind: "error", key: "deletePartiallyFailed", deleted: result.value.deleted }
+      });
+    } catch (error61) {
+      this.#emit({ pending: /* @__PURE__ */ new Set() });
+      this.#emit({ message: { kind: "error", text: error61 instanceof Error ? error61.message : String(error61) } });
     }
   }
   /** Clear the transient feedback banner. */
@@ -19101,6 +19146,7 @@ var ArchivedConversationsController = class {
 
 // client/src/page.js
 var import_react = require("react");
+var import_react_dom = require("react-dom");
 var import_jsx_runtime = require("react/jsx-runtime");
 var import_dsh_client_ui_primitives = require("@deepseek-ai/dsh-client-ui-primitives");
 function formatWhen(at, t) {
@@ -19108,9 +19154,31 @@ function formatWhen(at, t) {
   if (when.unit === "now") return t("time.now");
   return t(`time.${when.unit}`).replace("{n}", String(when.n));
 }
+function groupItems(items) {
+  const groups = [];
+  const byPath = /* @__PURE__ */ new Map();
+  for (const item of items) {
+    const path = item.cwd ?? "";
+    let group = byPath.get(path);
+    if (group === void 0) {
+      group = { path, items: [] };
+      byPath.set(path, group);
+      groups.push(group);
+    }
+    group.items.push(item);
+  }
+  const ungrouped = groups.filter((group) => group.path === "");
+  return [...groups.filter((group) => group.path !== ""), ...ungrouped];
+}
+function projectTitle(path, projects, t) {
+  if (path === "") return t("noWorkspace");
+  const title = projects[path];
+  if (typeof title === "string" && title !== "") return title;
+  const segments = path.split("/").filter(Boolean);
+  return segments.length > 0 ? segments[segments.length - 1] : path;
+}
 function ArchivedRow({ item, t, pending, onUnarchive, onDelete }) {
   const title = item.title ?? t("untitled");
-  const where = item.cwd ?? t("noWorkspace");
   const when = item.updatedAt !== null ? `${t("lastActivity")} \xB7 ${formatWhen(item.updatedAt, t)}` : "";
   const busy = pending;
   return (0, import_jsx_runtime.jsx)("li", {
@@ -19123,13 +19191,12 @@ function ArchivedRow({ item, t, pending, onUnarchive, onDelete }) {
           (0, import_jsx_runtime.jsxs)("div", {
             className: "dshAcv-rowMeta",
             children: [
-              (0, import_jsx_runtime.jsx)("span", { className: "dshAcv-rowCwd", title: item.cwd ?? void 0, children: where }),
-              when !== "" && (0, import_jsx_runtime.jsx)("span", { className: "dshAcv-rowWhen", children: when })
+              when !== "" && (0, import_jsx_runtime.jsx)("span", { children: when }),
+              item.readError !== null && (0, import_jsx_runtime.jsx)("span", {
+                className: "dshAcv-rowError",
+                children: t("readErrorLabel").replace("{error}", item.readError)
+              })
             ]
-          }),
-          item.readError !== null && (0, import_jsx_runtime.jsx)("div", {
-            className: "dshAcv-rowError",
-            children: t("readErrorLabel").replace("{error}", item.readError)
           })
         ]
       }),
@@ -19148,9 +19215,9 @@ function ArchivedRow({ item, t, pending, onUnarchive, onDelete }) {
             variant: "outline",
             size: "sm",
             disabled: busy,
-            className: "dshAcv-danger",
+            className: "dshAcv-dangerButton",
             icon: (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconTrashOutline16, {}),
-            onClick: () => onDelete(item.sessionId),
+            onClick: () => onDelete(item),
             children: t("delete")
           })
         ]
@@ -19158,52 +19225,151 @@ function ArchivedRow({ item, t, pending, onUnarchive, onDelete }) {
     ]
   });
 }
+function ProjectGroup({ group, projects, t, pending, onUnarchive, onDelete }) {
+  return (0, import_jsx_runtime.jsxs)("section", {
+    className: "dshAcv-group",
+    children: [
+      (0, import_jsx_runtime.jsxs)("div", {
+        className: "dshAcv-groupHeader",
+        children: [
+          (0, import_jsx_runtime.jsx)("span", {
+            className: "dshAcv-groupIcon",
+            children: (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconFolderClose16, { size: 14 })
+          }),
+          (0, import_jsx_runtime.jsx)("span", {
+            className: "dshAcv-groupTitle",
+            title: group.path === "" ? void 0 : group.path,
+            children: projectTitle(group.path, projects, t)
+          }),
+          (0, import_jsx_runtime.jsx)("span", {
+            className: "dshAcv-groupCount",
+            children: String(group.items.length)
+          })
+        ]
+      }),
+      (0, import_jsx_runtime.jsx)("ul", {
+        className: "dshAcv-list",
+        children: group.items.map((item) => (0, import_jsx_runtime.jsx)(ArchivedRow, {
+          item,
+          t,
+          pending: pending.has(item.sessionId),
+          onUnarchive,
+          onDelete
+        }, item.sessionId))
+      })
+    ]
+  });
+}
 function ArchivedConversationsPage({ page, t }) {
   const snapshot = (0, import_react.useSyncExternalStore)(page.subscribe, page.getSnapshot, page.getSnapshot);
   const [confirmItem, setConfirmItem] = (0, import_react.useState)(null);
+  const [navIconPortal, setNavIconPortal] = (0, import_react.useState)(null);
+  const [confirmAll, setConfirmAll] = (0, import_react.useState)(false);
   const [acknowledged, setAcknowledged] = (0, import_react.useState)(false);
   (0, import_react.useEffect)(() => {
     setAcknowledged(false);
-  }, [confirmItem]);
+  }, [confirmItem, confirmAll]);
   (0, import_react.useEffect)(() => {
     if (snapshot.message === null) return;
     const timer = setTimeout(() => page.dismissMessage(), 5e3);
     return () => clearTimeout(timer);
   }, [snapshot.message, page]);
+  (0, import_react.useEffect)(() => {
+    let applied = false;
+    let wrap = null;
+    let gear = null;
+    const applyNavIcon = () => {
+      if (applied) return;
+      const dialog = document.querySelector('[role="dialog"]');
+      if (dialog === null) return;
+      const label = t("nav");
+      for (const candidate of dialog.querySelectorAll("nav button")) {
+        const spans = [...candidate.children].filter((child) => child.tagName === "SPAN");
+        if (!spans.some((span) => span.textContent === label)) continue;
+        gear = candidate.querySelector("svg");
+        if (gear !== null) gear.style.display = "none";
+        wrap = document.createElement("span");
+        wrap.className = "dshAcv-navIcon";
+        candidate.insertBefore(wrap, spans[0]);
+        setNavIconPortal((0, import_react_dom.createPortal)((0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconArchiveOutline20, { size: 16 }), wrap));
+        applied = true;
+        return;
+      }
+    };
+    applyNavIcon();
+    const timer = setInterval(applyNavIcon, 600);
+    return () => {
+      clearInterval(timer);
+      wrap?.remove();
+      if (gear !== null) gear.style.display = "";
+    };
+  }, [t]);
   const busyCount = snapshot.pending.size;
-  const onConfirmDelete = async () => {
+  const groups = groupItems(snapshot.items);
+  const onConfirmSingleDelete = async () => {
     if (confirmItem === null) return;
     const sessionId2 = confirmItem.sessionId;
     setConfirmItem(null);
     setAcknowledged(false);
     await page.deleteSession(sessionId2);
   };
+  const onConfirmBulkDelete = async () => {
+    setConfirmAll(false);
+    setAcknowledged(false);
+    await page.deleteAll();
+  };
   return (0, import_jsx_runtime.jsxs)("div", {
     className: "dshAcv",
     children: [
+      navIconPortal,
       (0, import_jsx_runtime.jsxs)("header", {
         className: "dshAcv-header",
         children: [
           (0, import_jsx_runtime.jsxs)("div", {
             className: "dshAcv-heading",
             children: [
-              (0, import_jsx_runtime.jsx)("h2", { className: "dshAcv-title", children: t("heading") }),
-              (0, import_jsx_runtime.jsx)("p", { className: "dshAcv-description", children: t("description") })
+              (0, import_jsx_runtime.jsx)("span", {
+                className: "dshAcv-headingIcon",
+                children: (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconArchiveOutline20, { size: 18 })
+              }),
+              (0, import_jsx_runtime.jsxs)("div", {
+                children: [
+                  (0, import_jsx_runtime.jsx)("h2", { className: "dshAcv-title", children: t("heading") }),
+                  (0, import_jsx_runtime.jsx)("p", { className: "dshAcv-description", children: t("description") })
+                ]
+              })
             ]
           }),
-          (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.Button, {
-            variant: "outline",
-            size: "sm",
-            disabled: snapshot.items.length === 0 || busyCount > 0,
-            icon: (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconArchiveOutline20, { size: 14 }),
-            onClick: () => void page.unarchiveAll(),
-            children: t("unarchiveAll")
+          (0, import_jsx_runtime.jsxs)("div", {
+            className: "dshAcv-toolbar",
+            children: [
+              (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.Button, {
+                variant: "outline",
+                size: "sm",
+                disabled: snapshot.phase !== "ready" || snapshot.items.length === 0 || busyCount > 0,
+                icon: (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconArchiveOutline20, { size: 14 }),
+                onClick: () => void page.unarchiveAll(),
+                children: t("unarchiveAll")
+              }),
+              (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.Button, {
+                variant: "outline",
+                size: "sm",
+                disabled: snapshot.phase !== "ready" || snapshot.items.length === 0 || busyCount > 0,
+                className: "dshAcv-dangerButton",
+                icon: (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconTrashOutline16, {}),
+                onClick: () => {
+                  setConfirmAll(true);
+                  setAcknowledged(false);
+                },
+                children: t("deleteAll")
+              })
+            ]
           })
         ]
       }),
       snapshot.phase === "ready" && snapshot.message !== null && (0, import_jsx_runtime.jsx)("div", {
         className: `dshAcv-banner dshAcv-banner-${snapshot.message.kind}`,
-        children: snapshot.message.key !== void 0 ? t(snapshot.message.key).replace("{n}", String(snapshot.message.failed ?? 0)) : snapshot.message.text
+        children: snapshot.message.key !== void 0 ? t(snapshot.message.key).replace("{n}", String(snapshot.message.failed ?? snapshot.message.deleted ?? 0)) : snapshot.message.text
       }),
       snapshot.phase === "loading" && (0, import_jsx_runtime.jsx)("div", {
         className: "dshAcv-state",
@@ -19219,32 +19385,26 @@ function ArchivedConversationsPage({ page, t }) {
           (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.Button, { variant: "outline", size: "sm", onClick: () => void page.refresh(), children: t("retry") })
         ]
       }),
-      snapshot.phase === "ready" && snapshot.items.length === 0 && (0, import_jsx_runtime.jsxs)("div", {
+      snapshot.phase === "ready" && groups.length === 0 && (0, import_jsx_runtime.jsxs)("div", {
         className: "dshAcv-state",
         children: [
           (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconArchiveOutline20, { size: 28, className: "dshAcv-stateIcon" }),
           (0, import_jsx_runtime.jsx)("p", { className: "dshAcv-stateText", children: t("empty") })
         ]
       }),
-      snapshot.phase === "ready" && snapshot.items.length > 0 && (0, import_jsx_runtime.jsxs)("div", {
+      snapshot.phase === "ready" && groups.length > 0 && (0, import_jsx_runtime.jsx)("div", {
         className: "dshAcv-listWrap",
-        children: [
-          (0, import_jsx_runtime.jsx)("p", { className: "dshAcv-count", children: t("countLabel").replace("{n}", String(snapshot.items.length)) }),
-          (0, import_jsx_runtime.jsx)("ul", {
-            className: "dshAcv-list",
-            children: snapshot.items.map((item) => (0, import_jsx_runtime.jsx)(ArchivedRow, {
-              item,
-              t,
-              pending: snapshot.pending.has(item.sessionId),
-              onUnarchive: (sessionId2) => void page.unarchive(sessionId2),
-              onDelete: (sessionId2) => {
-                const found = snapshot.items.find((candidate) => candidate.sessionId === sessionId2);
-                setConfirmItem(found ?? null);
-                setAcknowledged(false);
-              }
-            }, item.sessionId))
-          })
-        ]
+        children: groups.map((group) => (0, import_jsx_runtime.jsx)(ProjectGroup, {
+          group,
+          projects: snapshot.projects,
+          t,
+          pending: snapshot.pending,
+          onUnarchive: (sessionId2) => void page.unarchive(sessionId2),
+          onDelete: (item) => {
+            setConfirmItem(item);
+            setAcknowledged(false);
+          }
+        }, group.path === "" ? "__ungrouped__" : group.path))
       }),
       (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.RiskConfirmation, {
         open: confirmItem !== null,
@@ -19261,7 +19421,24 @@ function ArchivedConversationsPage({ page, t }) {
           setConfirmItem(null);
           setAcknowledged(false);
         },
-        onConfirm: () => void onConfirmDelete()
+        onConfirm: () => void onConfirmSingleDelete()
+      }),
+      (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.RiskConfirmation, {
+        open: confirmAll,
+        title: t("confirmAllTitle"),
+        description: t("confirmAllDescription").replace("{n}", String(snapshot.items.length)),
+        acknowledgeLabel: t("acknowledge"),
+        cancelLabel: t("cancel"),
+        closeLabel: t("cancel"),
+        confirmLabel: t("confirmDeleteAll"),
+        acknowledged,
+        disabled: snapshot.pending.size > 0,
+        onAcknowledgedChange: setAcknowledged,
+        onCancel: () => {
+          setConfirmAll(false);
+          setAcknowledged(false);
+        },
+        onConfirm: () => void onConfirmBulkDelete()
       })
     ]
   });
@@ -19273,7 +19450,7 @@ var css = `
 .dshAcv {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   min-width: 0;
 }
 
@@ -19286,30 +19463,115 @@ var css = `
 
 .dshAcv-heading {
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dshAcv-headingIcon {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-module-platform);
+  border: 1px solid var(--dsw-alias-border-l2);
 }
 
 .dshAcv-title {
-  margin: 0 0 4px;
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.4;
+  margin: 0 0 2px;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+  color: var(--dsw-alias-label-primary);
 }
 
 .dshAcv-description {
   margin: 0;
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: color-mix(in srgb, currentColor 62%, transparent);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
 }
 
-.dshAcv-count {
-  margin: 0 0 6px;
-  font-size: 11.5px;
-  color: color-mix(in srgb, currentColor 55%, transparent);
+.dshAcv-navIcon {
+  flex: none;
+  display: inline-flex;
+  color: inherit;
+}
+
+.dshAcv-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.dshAcv-toolbar .dshAcv-dangerButton {
+  color: var(--dsw-alias-label-error);
+}
+
+.dshAcv-banner {
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  line-height: 18px;
+  border: 1px solid transparent;
+}
+
+.dshAcv-banner-success {
+  color: var(--dsw-alias-state-success-primary);
+  border-color: var(--dsw-alias-state-success-secondary);
+  background: color-mix(in srgb, var(--dsw-alias-state-success-primary) 8%, transparent);
+}
+
+.dshAcv-banner-error {
+  color: var(--dsw-alias-state-error-primary);
+  border-color: var(--dsw-alias-state-error-secondary);
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 8%, transparent);
 }
 
 .dshAcv-listWrap {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dshAcv-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dshAcv-groupHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 2px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.dshAcv-groupIcon {
+  flex: none;
+  display: inline-flex;
+  color: var(--dsw-alias-label-dimmed);
+}
+
+.dshAcv-groupTitle {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dshAcv-groupCount {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
 }
 
 .dshAcv-list {
@@ -19327,15 +19589,14 @@ var css = `
   justify-content: space-between;
   gap: 12px;
   padding: 10px 12px;
-  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, currentColor 3%, transparent);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 12px;
+  background: var(--dsw-alias-bg-module-platform);
   transition: border-color 120ms ease, background-color 120ms ease;
 }
 
 .dshAcv-row:hover {
-  border-color: color-mix(in srgb, currentColor 24%, transparent);
-  background: color-mix(in srgb, currentColor 5%, transparent);
+  border-color: var(--dsw-alias-border-l3);
 }
 
 .dshAcv-rowMain {
@@ -19347,9 +19608,10 @@ var css = `
 }
 
 .dshAcv-rowTitle {
-  font-size: 13px;
-  font-weight: 550;
-  line-height: 1.4;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+  color: var(--dsw-alias-label-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -19359,20 +19621,15 @@ var css = `
   display: flex;
   flex-wrap: wrap;
   gap: 4px 10px;
-  font-size: 11.5px;
-  color: color-mix(in srgb, currentColor 58%, transparent);
-}
-
-.dshAcv-rowCwd {
-  max-width: 34em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
 }
 
 .dshAcv-rowError {
-  font-size: 11.5px;
-  color: #d97706;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-state-warn-primary);
 }
 
 .dshAcv-rowActions {
@@ -19382,28 +19639,8 @@ var css = `
   flex-shrink: 0;
 }
 
-.dshAcv-danger {
-  color: #dc2626;
-}
-
-.dshAcv-banner {
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 12.5px;
-  line-height: 1.5;
-  border: 1px solid transparent;
-}
-
-.dshAcv-banner-success {
-  color: #15803d;
-  border-color: color-mix(in srgb, #15803d 30%, transparent);
-  background: color-mix(in srgb, #15803d 9%, transparent);
-}
-
-.dshAcv-banner-error {
-  color: #b91c1c;
-  border-color: color-mix(in srgb, #b91c1c 30%, transparent);
-  background: color-mix(in srgb, #b91c1c 9%, transparent);
+.dshAcv-rowActions .dshAcv-dangerButton {
+  color: var(--dsw-alias-label-error);
 }
 
 .dshAcv-state {
@@ -19412,26 +19649,27 @@ var css = `
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 36px 16px;
+  padding: 48px 16px;
   text-align: center;
 }
 
 .dshAcv-stateIcon {
-  color: color-mix(in srgb, currentColor 40%, transparent);
+  color: var(--dsw-alias-label-dimmed);
 }
 
 .dshAcv-stateText {
   margin: 0;
-  font-size: 12.5px;
-  color: color-mix(in srgb, currentColor 62%, transparent);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
 }
 
 .dshAcv-spinner {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  border: 2px solid color-mix(in srgb, currentColor 18%, transparent);
-  border-top-color: currentColor;
+  border: 2px solid var(--dsw-alias-border-l2);
+  border-top-color: var(--dsw-alias-brand-primary);
   animation: dshAcvSpin 700ms linear infinite;
 }
 
@@ -19440,6 +19678,9 @@ var css = `
 }
 
 @media (max-width: 560px) {
+  .dshAcv-header {
+    flex-direction: column;
+  }
   .dshAcv-row {
     flex-direction: column;
   }
@@ -19480,6 +19721,7 @@ var zh = {
   unarchive: "\u53D6\u6D88\u5F52\u6863",
   delete: "\u5220\u9664",
   unarchiveAll: "\u5168\u90E8\u53D6\u6D88\u5F52\u6863",
+  deleteAll: "\u5168\u90E8\u5220\u9664",
   cancel: "\u53D6\u6D88",
   retry: "\u91CD\u8BD5",
   empty: "\u6CA1\u6709\u5DF2\u5F52\u6863\u7684\u5BF9\u8BDD",
@@ -19488,8 +19730,13 @@ var zh = {
   confirmDescription: "\u5373\u5C06\u6C38\u4E45\u5220\u9664\u300C{title}\u300D\u3002\u5176\u5168\u90E8\u6D88\u606F\u8BB0\u5F55\u4E0E\u65E5\u5FD7\u6587\u4EF6\u90FD\u4F1A\u88AB\u79FB\u9664\uFF0C\u6B64\u64CD\u4F5C\u65E0\u6CD5\u64A4\u9500\u3002",
   acknowledge: "\u6211\u660E\u767D\u6B64\u64CD\u4F5C\u4E0D\u53EF\u6062\u590D",
   confirmDelete: "\u786E\u8BA4\u5220\u9664",
+  confirmAllTitle: "\u6C38\u4E45\u5220\u9664\u5168\u90E8\u5BF9\u8BDD",
+  confirmAllDescription: "\u5373\u5C06\u6C38\u4E45\u5220\u9664\u5168\u90E8 {n} \u4E2A\u5DF2\u5F52\u6863\u5BF9\u8BDD\u3002\u5B83\u4EEC\u7684\u6D88\u606F\u8BB0\u5F55\u4E0E\u65E5\u5FD7\u6587\u4EF6\u90FD\u4F1A\u88AB\u79FB\u9664\uFF0C\u6B64\u64CD\u4F5C\u65E0\u6CD5\u64A4\u9500\u3002",
+  confirmDeleteAll: "\u5168\u90E8\u6C38\u4E45\u5220\u9664",
   unarchived: "\u5DF2\u53D6\u6D88\u5F52\u6863\uFF0C\u5BF9\u8BDD\u5DF2\u6062\u590D\u5230\u4FA7\u8FB9\u680F",
   deleted: "\u5BF9\u8BDD\u5DF2\u6C38\u4E45\u5220\u9664",
+  deletedAll: "\u5DF2\u6C38\u4E45\u5220\u9664 {n} \u4E2A\u5BF9\u8BDD",
+  deletePartiallyFailed: "\u5DF2\u5220\u9664 {n} \u4E2A\u5BF9\u8BDD\uFF0C\u5176\u4F59\u5220\u9664\u5931\u8D25",
   unarchivePartiallyFailed: "{n} \u4E2A\u5BF9\u8BDD\u53D6\u6D88\u5931\u8D25\uFF0C\u5176\u4F59\u5DF2\u5B8C\u6210"
 };
 var en = {
@@ -19510,6 +19757,7 @@ var en = {
   unarchive: "Unarchive",
   delete: "Delete",
   unarchiveAll: "Unarchive all",
+  deleteAll: "Delete all",
   cancel: "Cancel",
   retry: "Retry",
   empty: "No archived conversations",
@@ -19518,8 +19766,13 @@ var en = {
   confirmDescription: "This permanently deletes \u201C{title}\u201D. All messages and log files will be removed. This cannot be undone.",
   acknowledge: "I understand this cannot be undone",
   confirmDelete: "Delete permanently",
+  confirmAllTitle: "Delete all conversations permanently",
+  confirmAllDescription: "This permanently deletes all {n} archived conversations. Their messages and log files will be removed. This cannot be undone.",
+  confirmDeleteAll: "Delete all permanently",
   unarchived: "Conversation restored to the sidebar",
   deleted: "Conversation deleted permanently",
+  deletedAll: "{n} conversation(s) deleted permanently",
+  deletePartiallyFailed: "{n} conversation(s) deleted; the rest failed",
   unarchivePartiallyFailed: "{n} conversation(s) failed to unarchive; the rest were restored"
 };
 

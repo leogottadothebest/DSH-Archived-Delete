@@ -94,9 +94,13 @@ const seeds = {
     jsxs: (...args) => ({ args }),
     Fragment: "Fragment"
   },
+  "react-dom": {
+    createPortal: (element) => element
+  },
   "@deepseek-ai/dsh-client-ui-primitives": {
     Button: () => {},
     IconArchiveOutline20: () => {},
+    IconFolderClose16: () => {},
     IconTrashOutline16: () => {},
     RiskConfirmation: () => {},
     relativeTime: () => ({ unit: "now", n: 0 })

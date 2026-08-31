@@ -26,6 +26,8 @@ const archivedSessionItem = z.object({
 const listValue = z.object({ items: z.array(archivedSessionItem), archivedSessionIds });
 const archivedIdsValue = z.object({ sessionId, archivedSessionIds });
 const deleteValue = z.object({ sessionId, deleted: z.boolean() });
+const unarchiveAllValue = z.object({ archivedSessionIds });
+const deleteAllValue = z.object({ deleted: z.number().int().nonnegative(), archivedSessionIds });
 
 const codec = (typeSymbol, schema) => ({ mode: "strict", typeSymbol, schema });
 const jsonParameter = (typeSymbol, schema) => ({
@@ -70,7 +72,9 @@ export const TYPERT_REMOTE = {
       [jsonParameter("dsh-plugin-archived-conversations#archivedSessions/deleteSession:request", sessionIdRequest)],
       true,
       deleteValue
-    )
+    ),
+    descriptor("unarchiveAll", [], true, unarchiveAllValue),
+    descriptor("deleteAll", [], true, deleteAllValue)
   ]
 };
 
