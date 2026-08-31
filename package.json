@@ -8,7 +8,7 @@
   "exports": {
     ".": "./lib/index.js",
     "./typert": "./lib/typert.js",
-    "./client": "./client/index.js",
+    "./client": "./client/client.js",
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./package.json": "./package.json"
   },
@@ -30,6 +30,7 @@
   },
   "devDependencies": {
     "@deepseek-ai/dsh-client-ui-primitives": "^0.1.2-alpha.1",
+    "esbuild": "^0.28.2",
     "react": "^18.3.1"
   },
   "dsh": {
@@ -46,5 +47,8 @@
       ],
       "platform": "web"
     }
+  },
+  "scripts": {
+    "build:client": "node scripts/build-client.mjs"
   }
 }

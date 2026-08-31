@@ -69,14 +69,20 @@ interface ArchivedSessionItem {
 
 ## 开发
 
-纯 ESM、零构建步骤：宿主入口 `lib/index.js`，客户端入口
-`client/index.js`，Typert 清单分别位于 `lib/typert.js`（宿主，经
-`dsh-typert-loader` 自动注册）与 `client/typert.js`（客户端，经
-`ctx.remote.$mount` 挂载）。
+宿主半程是纯 ESM（`lib/index.js`，`lib/typert.js` 经
+`dsh-typert-loader` 自动注册，无需构建）。**客户端半程必须构建**：DSH
+浏览器运行时把每个插件的 `./client` 导出当作经典脚本加载，要求它通过
+`window.__ModuleLoader__.load({ id, factory })` 注册 CJS 工厂——裸 ESM
+会导致页面启动失败。源码在 `client/src/`，发布产物是
+`client/client.js`（zod 内联打包；react / jsx-runtime / primitives 走
+平台种子模块外部化）。
 
 ```bash
-node --check lib/*.js client/*.js   # 语法检查
+pnpm run build:client            # 生成 client/client.js
+node --check lib/*.js            # 宿主语法检查
 ```
+
+改完客户端源码后需重新构建并重装（`file:` 安装时 pnpm 会重新复制包）。
 
 客户端组合所需的官方包在 `package.json` 的 `dsh.client.inject` 中声明。
 
