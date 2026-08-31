@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 安全漏洞报告
+    url: https://github.com/leogottadothebest/DSH-Archived-Delete/security/advisories/new
+    about: 请勿公开报告安全漏洞，使用 GitHub 私有漏洞报告渠道。
+  - name: 插件市场上架
+    url: https://github.com/awesome-dsh-plugin/awesome-dsh-plugin
+    about: 上架 dshmarket 等市场请在 awesome-dsh-plugin 提 PR，不要在本仓库提。

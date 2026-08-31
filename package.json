@@ -3,6 +3,30 @@
   "version": "0.1.0",
   "description": "DeepSeek Harness 插件：在设置界面管理已归档对话——取消归档与永久删除。DeepSeek Harness plugin: manage archived conversations in Settings — unarchive and permanently delete.",
   "license": "MIT",
+  "author": {
+    "name": "leogottadothebest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/leogottadothebest/DSH-Archived-Delete.git"
+  },
+  "homepage": "https://github.com/leogottadothebest/DSH-Archived-Delete#readme",
+  "bugs": {
+    "url": "https://github.com/leogottadothebest/DSH-Archived-Delete/issues"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "archived-conversations",
+    "sessions",
+    "archive",
+    "settings"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "packageManager": "pnpm@11.8.0",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
@@ -16,6 +40,7 @@
     "lib",
     "client",
     "cordis.patch.yml",
+    "CHANGELOG.md",
     "DESIGN.md",
     "README.md",
     "LICENSE"
@@ -50,6 +75,8 @@
     }
   },
   "scripts": {
-    "build:client": "node scripts/build-client.mjs"
+    "build:client": "node scripts/build-client.mjs",
+    "check": "node scripts/build-client.mjs && node --check lib/index.js && node --check lib/remote.js && node --check lib/typert.js && node --check lib/times.js",
+    "prepack": "npm run check"
   }
 }

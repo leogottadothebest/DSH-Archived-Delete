@@ -1,0 +1,53 @@
+name: Bug 报告
+description: 报告插件缺陷（崩溃、数据异常、界面问题等）
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢报告！请先搜索现有 issue 确认没有重复。**不要粘贴任何密钥、token 或私密信息。**
+  - type: input
+    id: version
+    attributes:
+      label: 插件版本
+      description: 设置 → 插件中显示的版本，或 `package.json` 的 version。
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: dsh-version
+    attributes:
+      label: DSH 环境
+      description: DeepSeek Harness 版本与形态（桌面端 / web、dsh 版本号）。
+      placeholder: 桌面端 2.0.4，dsh 0.1.2-alpha.1
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 发生了什么
+      description: 描述你看到的行为。
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: 复现步骤
+      description: 按顺序列出能稳定复现的操作。
+      placeholder: |
+        1. 归档一个对话
+        2. 打开 设置 → 已归档对话
+        3. 点击「删除」…
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+      description: 你期望发生什么？
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志/截图（可选）
+      description: 控制台报错、截图等。注意脱敏。
