@@ -1,0 +1,15 @@
+#!/bin/sh
+# post-commit hook — DSH auto-commit enforcement (兜底)
+# 每次 commit 成功后自动推送到 origin。钩子只是兜底:agent 仍须自行 git push 并反馈提交版本。
+# post-commit 失败不影响 commit 本身;推送失败(如离线)仅告警,不阻塞。
+
+branch=$(git branch --show-current 2>/dev/null) || exit 0
+[ -n "$branch" ] || exit 0
+[ "$(git remote)" ] || exit 0
+
+if git push -q origin "$branch" 2>/dev/null; then
+  echo "[post-commit] pushed to origin/$branch"
+else
+  echo "[post-commit] push to origin/$branch failed (offline?) — run 'git push origin $branch' manually" >&2
+fi
+exit 0
