@@ -23,16 +23,21 @@ DeepSeek Harness 插件：在**设置界面**管理**已归档对话**。
 
 ## 安装
 
-把本包加入 profile 依赖后重启（与官方插件一致的加载方式）：
+DSH 插件需要两步：作为依赖安装 + 挂载为 bundle 层（本包自带
+`dsh.bundle.patch`，即 `cordis.patch.yml` 中的插入条目）。
 
 ```bash
 # 桌面端（以默认 profile 为例）
 cd ~/.dsh/profiles/desktop
 pnpm add /Users/leo/Documents/DeepSeekHarness/Archived-Delete
+
+# 把插件追加到 bundle 层：编辑 package.json，在 dsh.profile.bundles 中
+# 加入 "dsh-plugin-archived-conversations"（dshmarket 安装插件时执行
+# 的正是这两步）。
 ```
 
-或在插件市场（dsh-community-market）中安装本包。重启 DeepSeek Harness
-后，打开 设置 → **已归档对话** 即可使用。
+然后重启 DeepSeek Harness，打开 设置 → **已归档对话** 即可使用。也可在
+插件市场（dsh-community-market）中安装本包（需发布到 npm registry）。
 
 ## 远程 API（宿主）
 

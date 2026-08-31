@@ -177,7 +177,8 @@ namespace/has/install/installDirect/installScoped/remove`），故删除方法
 ## 5. 包结构与安装
 
 ```
-package.json          # exports: "." / "./typert" / "./client"；dsh.client.inject
+package.json          # exports: "." / "./typert" / "./client"；dsh.bundle.patch + dsh.client.inject
+cordis.patch.yml      # bundle 补丁：insert 条目 {id: archived-conversations, name: 本包}
 lib/index.js          # 宿主入口 apply(ctx)
 lib/typert.js         # 宿主 TYPERT 清单（zod codec + FaceModel）
 lib/remote.js         # ArchivedSessionsRemote
@@ -189,8 +190,15 @@ client/locale.js      # zh/en 字典
 client/styles.js      # 注入式样式（dshAcv- 前缀）
 ```
 
-安装方式与官方第三方插件一致：把本包加入 profile 依赖（桌面端
-`~/.dsh/profiles/desktop` 下 `pnpm add <本包路径>`，或经插件市场），
+安装方式与官方第三方插件一致，**两步缺一不可**：
+
+1. 把本包加入 profile 依赖（桌面端 `~/.dsh/profiles/desktop` 下
+   `pnpm add <本包路径>`，或经插件市场安装到 npm 包）；
+2. 把包名加入 profile 清单的 `dsh.profile.bundles`——DSH 的 loader 条目
+   全部来自 bundle 补丁层（`dsh.bundle.patch` 的 insert 行）与 profile
+   自身的 `cordis.patch.yml` 用户层，**依赖本身不会自动成为条目**（这是
+   首次安装只做了第 1 步导致设置页没有入口的直接原因）。
+
 重启后生效。`dsh.client.inject` 声明客户端组合所需的官方包；
 `dsh-typert-loader` 在 entry 挂载时自动注册宿主清单。
 
