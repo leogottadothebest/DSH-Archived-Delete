@@ -25,7 +25,6 @@ var index_exports = {};
 __export(index_exports, {
   NS: () => NS,
   apply: () => apply,
-  default: () => index_default,
   inject: () => inject,
   name: () => name
 });
@@ -19550,7 +19549,6 @@ async function apply(ctx) {
     await unmountRemote();
   };
 }
-var index_default = apply;
 
 return module.exports;
 } });

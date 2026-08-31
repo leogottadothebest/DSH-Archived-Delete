@@ -57,4 +57,3 @@ async function apply(ctx) {
 }
 
 export { apply };
-export default apply;
