@@ -14,7 +14,6 @@
  * @module dsh-plugin-archived-conversations/client/page
  */
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { createPortal } from "react-dom";
 import { jsx, jsxs } from "react/jsx-runtime";
 import {
   Button,
@@ -135,7 +134,8 @@ function ProjectGroup({ group, projects, t, lang, pending, onUnarchive, onDelete
     {
       id: "delete",
       label: t("deleteAll"),
-      icon: jsx(IconTrashOutline16, {})
+      icon: jsx(IconTrashOutline16, {}),
+      danger: true
     }
   ];
 
@@ -208,7 +208,6 @@ export function ArchivedConversationsPage({ page, t, readLocale }) {
   const [confirmItem, setConfirmItem] = useState(null);
   const [confirmAll, setConfirmAll] = useState(null);
   const [acknowledged, setAcknowledged] = useState(false);
-  const [navIconPortal, setNavIconPortal] = useState(null);
   const lang = readLocale() ?? "en";
 
   // Reset the confirmation dialog whenever its target changes or closes.
@@ -221,42 +220,6 @@ export function ArchivedConversationsPage({ page, t, readLocale }) {
     const timer = setTimeout(() => page.dismissMessage(), 5000);
     return () => clearTimeout(timer);
   }, [snapshot.message, page]);
-
-  // The settings shell hardcodes nav icons per section id and offers no icon
-  // option for third-party sections, so this section would show the generic
-  // gear. Swap the gear for the archive glyph on the nav row whose label
-  // matches this section (self-healing: re-runs while the section is open,
-  // survives locale changes and panel remounts, and no-ops when absent).
-  useEffect(() => {
-    let applied = false;
-    let wrap = null;
-    let gear = null;
-    const applyNavIcon = () => {
-      if (applied) return;
-      const dialog = document.querySelector('[role="dialog"]');
-      if (dialog === null) return;
-      const label = t("nav");
-      for (const candidate of dialog.querySelectorAll("nav button")) {
-        const spans = [...candidate.children].filter((child) => child.tagName === "SPAN");
-        if (!spans.some((span) => span.textContent === label)) continue;
-        gear = candidate.querySelector("svg");
-        if (gear !== null) gear.style.display = "none";
-        wrap = document.createElement("span");
-        wrap.className = "dshAcv-navIcon";
-        candidate.insertBefore(wrap, spans[0]);
-        setNavIconPortal(createPortal(jsx(IconArchiveOutline20, { size: 16 }), wrap));
-        applied = true;
-        return;
-      }
-    };
-    applyNavIcon();
-    const timer = setInterval(applyNavIcon, 600);
-    return () => {
-      clearInterval(timer);
-      wrap?.remove();
-      if (gear !== null) gear.style.display = "";
-    };
-  }, [t]);
 
   const busyCount = snapshot.pending.size;
   const groups = groupItems(snapshot.items);
@@ -289,7 +252,6 @@ export function ArchivedConversationsPage({ page, t, readLocale }) {
   return jsxs("div", {
     className: "dshAcv",
     children: [
-      navIconPortal,
       jsxs("header", {
         className: "dshAcv-header",
         children: [

@@ -3,7 +3,9 @@
  *
  * 1. Mounts this plugin's Typert contribution so the `remote.archivedSessions`
  *    namespace service exists on the client.
- * 2. Registers dictionaries and the page stylesheet.
+ * 2. Registers dictionaries, the page stylesheet, and the settings nav icon
+ *    swap (installed here, not in the page, so the icon is correct the
+ *    moment the settings panel opens — regardless of the active section).
  * 3. Registers a `settings.section` entry ("已归档对话" / "Archived
  *    conversations") whose panel renders the management page.
  *
@@ -18,6 +20,7 @@ import { TYPERT_REMOTE } from "./typert.js";
 import { ArchivedConversationsController } from "./controller.js";
 import { ArchivedConversationsPage } from "./page.js";
 import { installStyles } from "./styles.js";
+import { installNavIcon } from "./nav-icon.js";
 import { en, zh } from "./locale.js";
 
 export const NS = "archived-conversations";
@@ -37,6 +40,8 @@ async function apply(ctx) {
 
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), "archived-conversations: dictionaries");
 
+  const offNavIcon = installNavIcon(() => ctx.locale.bind(NS)("nav"));
+
   ctx.slots.inject("settings.section", () => ctx.slots.register({
     name: "settings.section",
     id: "archived-conversations",
@@ -51,6 +56,7 @@ async function apply(ctx) {
   }, ArchivedConversationsPage));
 
   return async () => {
+    offNavIcon();
     page.dispose();
     offStyles();
     await unmountRemote();

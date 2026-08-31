@@ -19164,7 +19164,6 @@ var ArchivedConversationsController = class {
 
 // client/src/page.js
 var import_react = require("react");
-var import_react_dom = require("react-dom");
 var import_jsx_runtime = require("react/jsx-runtime");
 var import_dsh_client_ui_primitives = require("@deepseek-ai/dsh-client-ui-primitives");
 function formatArchiveTime(at, lang) {
@@ -19266,7 +19265,8 @@ function ProjectGroup({ group, projects, t, lang, pending, onUnarchive, onDelete
     {
       id: "delete",
       label: t("deleteAll"),
-      icon: (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconTrashOutline16, {})
+      icon: (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconTrashOutline16, {}),
+      danger: true
     }
   ];
   return (0, import_jsx_runtime.jsxs)("section", {
@@ -19331,7 +19331,6 @@ function ArchivedConversationsPage({ page, t, readLocale }) {
   const [confirmItem, setConfirmItem] = (0, import_react.useState)(null);
   const [confirmAll, setConfirmAll] = (0, import_react.useState)(null);
   const [acknowledged, setAcknowledged] = (0, import_react.useState)(false);
-  const [navIconPortal, setNavIconPortal] = (0, import_react.useState)(null);
   const lang = readLocale() ?? "en";
   (0, import_react.useEffect)(() => {
     setAcknowledged(false);
@@ -19341,36 +19340,6 @@ function ArchivedConversationsPage({ page, t, readLocale }) {
     const timer = setTimeout(() => page.dismissMessage(), 5e3);
     return () => clearTimeout(timer);
   }, [snapshot.message, page]);
-  (0, import_react.useEffect)(() => {
-    let applied = false;
-    let wrap = null;
-    let gear = null;
-    const applyNavIcon = () => {
-      if (applied) return;
-      const dialog = document.querySelector('[role="dialog"]');
-      if (dialog === null) return;
-      const label = t("nav");
-      for (const candidate of dialog.querySelectorAll("nav button")) {
-        const spans = [...candidate.children].filter((child) => child.tagName === "SPAN");
-        if (!spans.some((span) => span.textContent === label)) continue;
-        gear = candidate.querySelector("svg");
-        if (gear !== null) gear.style.display = "none";
-        wrap = document.createElement("span");
-        wrap.className = "dshAcv-navIcon";
-        candidate.insertBefore(wrap, spans[0]);
-        setNavIconPortal((0, import_react_dom.createPortal)((0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconArchiveOutline20, { size: 16 }), wrap));
-        applied = true;
-        return;
-      }
-    };
-    applyNavIcon();
-    const timer = setInterval(applyNavIcon, 600);
-    return () => {
-      clearInterval(timer);
-      wrap?.remove();
-      if (gear !== null) gear.style.display = "";
-    };
-  }, [t]);
   const busyCount = snapshot.pending.size;
   const groups = groupItems(snapshot.items);
   const onConfirmSingleDelete = async () => {
@@ -19398,7 +19367,6 @@ function ArchivedConversationsPage({ page, t, readLocale }) {
   return (0, import_jsx_runtime.jsxs)("div", {
     className: "dshAcv",
     children: [
-      navIconPortal,
       (0, import_jsx_runtime.jsxs)("header", {
         className: "dshAcv-header",
         children: [
@@ -19570,6 +19538,8 @@ var css = `
 .dshAcv-navIcon {
   flex: none;
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: inherit;
 }
 
@@ -19583,7 +19553,7 @@ var css = `
 .dshAcv-toolbar .dshAcv-dangerButton,
 .dshAcv .dshAcv-dangerButton,
 .dshAcv .dshAcv-dangerButton:hover {
-  color: var(--dsw-alias-label-error);
+  color: var(--dsw-alias-label-error, #e5484d) !important;
 }
 
 .dshAcv-banner {
@@ -19734,7 +19704,7 @@ var css = `
 }
 
 .dshAcv-rowActions .dshAcv-dangerButton:hover {
-  color: var(--dsw-alias-label-error);
+  color: var(--dsw-alias-label-error, #e5484d) !important;
 }
 
 .dshAcv-state {
@@ -19793,6 +19763,40 @@ function installStyles() {
   document.head.append(style);
   return () => {
     style.remove();
+  };
+}
+
+// client/src/nav-icon.js
+var ARCHIVE_ICON_SVG = [
+  '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">',
+  '<path fill-rule="evenodd" clip-rule="evenodd" d="M15.8659 2.05975C17.2603 2.05995 18.3913 3.19096 18.3914 4.58527V5.4874C18.3914 6.02747 18.2192 6.52672 17.9303 6.93735C17.9336 6.96524 17.9388 6.99318 17.9388 7.02195V12.8884C17.9388 13.6345 17.9395 14.2379 17.8996 14.7254C17.8642 15.1593 17.7936 15.5499 17.6373 15.9141L17.5654 16.0685C17.278 16.6328 16.8405 17.1046 16.3038 17.434L16.0679 17.5661C15.66 17.7739 15.2196 17.8598 14.7237 17.9003C14.2362 17.9401 13.6327 17.9405 12.8867 17.9405H7.11122C6.36511 17.9405 5.76171 17.9401 5.27418 17.9003C4.84051 17.8649 4.44949 17.7952 4.08545 17.6391L3.93104 17.5661C3.36673 17.2785 2.89392 16.8414 2.56465 16.3044L2.43245 16.0685C2.22473 15.6608 2.13878 15.2211 2.09825 14.7254C2.05841 14.2379 2.05912 13.6345 2.05912 12.8884V7.02195C2.05912 6.99284 2.06422 6.96449 2.06758 6.93629C1.77931 6.52592 1.60858 6.02687 1.60858 5.4874V4.58527C1.60876 3.19084 2.73962 2.05975 4.1341 2.05975H15.8659ZM16.4984 7.92936C16.296 7.98169 16.0847 8.01288 15.8659 8.01291H4.1341C3.91478 8.01291 3.70246 7.98194 3.49955 7.92936V12.8884C3.49955 13.6582 3.50053 14.1927 3.53445 14.608C3.56769 15.0146 3.62923 15.244 3.71635 15.415L3.7925 15.5514C3.98339 15.8627 4.25749 16.1165 4.58464 16.2833L4.72529 16.3435C4.88095 16.3993 5.08638 16.4402 5.39158 16.4651C5.80685 16.4991 6.34138 16.5001 7.11122 16.5001H12.8867C13.6564 16.5001 14.1911 16.499 14.6063 16.4651C15.0128 16.432 15.2423 16.3703 15.4133 16.2833L15.5508 16.2061C15.8618 16.0152 16.116 15.7419 16.2827 15.415L16.3429 15.2732C16.3985 15.1177 16.4396 14.9128 16.4645 14.608C16.4985 14.1927 16.4984 13.6583 16.4984 12.8884V7.92936ZM4.1341 3.50019C3.53511 3.50019 3.0492 3.98631 3.04902 4.58527V5.4874C3.04902 6.08649 3.535 6.57248 4.1341 6.57248H15.8659C16.4648 6.57228 16.951 6.08638 16.951 5.4874V4.58527C16.9509 3.98644 16.4647 3.50038 15.8659 3.50019H4.1341Z" fill="currentColor"/>',
+  '<path d="M12.7962 12.5661V11.0832H7.20548V12.5661L12.7962 12.5661Z" fill="currentColor"/>',
+  "</svg>"
+].join("");
+function installNavIcon(readLabel) {
+  let disposed = false;
+  const apply2 = () => {
+    if (disposed) return;
+    const dialog = document.querySelector('[role="dialog"]');
+    if (dialog === null) return;
+    const label = readLabel();
+    for (const button of dialog.querySelectorAll("nav button")) {
+      const spans = [...button.children].filter((child) => child.tagName === "SPAN");
+      if (!spans.some((span) => span.textContent === label)) continue;
+      if (button.querySelector(".dshAcv-navIcon") !== null) continue;
+      const gear = button.querySelector("svg");
+      if (gear !== null) gear.style.display = "none";
+      const wrap = document.createElement("span");
+      wrap.className = "dshAcv-navIcon";
+      wrap.innerHTML = ARCHIVE_ICON_SVG;
+      button.insertBefore(wrap, spans[0]);
+    }
+  };
+  apply2();
+  const timer = setInterval(apply2, 500);
+  return () => {
+    disposed = true;
+    clearInterval(timer);
   };
 }
 
@@ -19885,6 +19889,7 @@ async function apply(ctx) {
   const page = new ArchivedConversationsController(ctx);
   const offStyles = installStyles();
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), "archived-conversations: dictionaries");
+  const offNavIcon = installNavIcon(() => ctx.locale.bind(NS)("nav"));
   ctx.slots.inject("settings.section", () => ctx.slots.register({
     name: "settings.section",
     id: "archived-conversations",
@@ -19898,6 +19903,7 @@ async function apply(ctx) {
     })
   }, ArchivedConversationsPage));
   return async () => {
+    offNavIcon();
     page.dispose();
     offStyles();
     await unmountRemote();

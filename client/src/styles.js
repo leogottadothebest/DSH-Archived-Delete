@@ -64,6 +64,8 @@ const css = `
 .dshAcv-navIcon {
   flex: none;
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: inherit;
 }
 
@@ -77,7 +79,7 @@ const css = `
 .dshAcv-toolbar .dshAcv-dangerButton,
 .dshAcv .dshAcv-dangerButton,
 .dshAcv .dshAcv-dangerButton:hover {
-  color: var(--dsw-alias-label-error);
+  color: var(--dsw-alias-label-error, #e5484d) !important;
 }
 
 .dshAcv-banner {
@@ -228,7 +230,7 @@ const css = `
 }
 
 .dshAcv-rowActions .dshAcv-dangerButton:hover {
-  color: var(--dsw-alias-label-error);
+  color: var(--dsw-alias-label-error, #e5484d) !important;
 }
 
 .dshAcv-state {
