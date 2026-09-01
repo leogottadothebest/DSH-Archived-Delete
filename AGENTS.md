@@ -29,21 +29,6 @@
 - 仓库已配置 `core.hooksPath = .githooks`,每次 commit 后 `post-commit` 钩子会自动推送——但钩子只是兜底,**agent 仍必须自己执行 `git push` 并反馈版本**,不得依赖钩子。
 - 其他项目的仓库(如 `~/Documents/DeepSeekHarness/Academic`、`Settings`、`Website` 等)不受本规则约束,除非那些仓库也有各自的 AGENTS.md。
 
-## 规则:每次源代码改动后自动发布 npm 新版本(保证生效)
-
-**触发条件**:本会话对**源码或发布产物**做出了修改——包括 `lib/`、`client/src/`、`client/client.js`、`package.json`(依赖/版本/发布配置)——在完成上述 GitHub 提交推送之后,**必须发布一个新版本到 npm 并验证生效**。纯文档/规则类改动(`README.md`、`DESIGN.md`、`CHANGELOG.md`、`AGENTS.md`、`.github/`、`CONTRIBUTING.md` 等)**不触发**发版。**不允许把多次源码改动攒到一起发版**,每次源码改动后都要立即发布。
-
-**必须执行的发布步骤**(回合结束前逐一完成):
-
-1. 更新 `CHANGELOG.md`:把 `[Unreleased]` 段的内容整理进新版本段(格式仿照现有条目;新版本号 = 当前版本 +1 patch)。
-2. `npm version patch -m "release: %s"` —— 自动提升版本号(如 0.1.1 → 0.1.2)并生成提交与 `vX.Y.Z` tag。
-3. `npm publish` —— `prepack` 钩子会自动重新构建 `client/client.js` 并做宿主语法检查。若遇 `EPERM` 缓存错误(沙箱/缓存权限),改用临时缓存执行:`npm_config_cache=$(mktemp -d) npm publish`。
-4. **强制验证(保证生效,不得跳过)**:`npm view dsh-plugin-archived-conversations version` 的输出**必须与本地 `package.json` 的 version 完全一致**;不一致即发布失败,必须排查重试,禁止以"已执行 publish"蒙混。
-5. `git push origin main --tags` —— 推送源码提交、版本提交与 tag。
-6. `git status` 确认工作区干净、与 `origin/main` 同步。
-
-**必须反馈**:在回复正文中明确给出 npm 新版本号(如 `0.1.2`)、`npm view` 验证结果、git 提交版本(短+完整哈希)与 tag 名。
-
 ## 仓库信息
 
 - 远端:https://github.com/leogottadothebest/DSH-Archived-Delete.git
