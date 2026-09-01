@@ -8,9 +8,12 @@
  *
  * Installed from the client apply — not from the page component — so the
  * swap applies as soon as the settings panel opens, regardless of which
- * section is active. The poll is self-healing: panel remounts, locale
- * changes, and React reconciliation re-run it, and it no-ops when no row
- * matches.
+ * section is active. The swap is driven by a MutationObserver (callbacks
+ * run as microtasks before the next paint), so the archive glyph lands in
+ * the same frame the panel first renders — no gear flash. A slow safety
+ * poll and the idempotent per-row check make it self-healing across panel
+ * remounts, locale changes, and React reconciliation; it no-ops when no
+ * row matches.
  *
  * @module dsh-plugin-archived-conversations/client/nav-icon
  */
@@ -23,34 +26,51 @@ const ARCHIVE_ICON_SVG = [
 ].join("");
 
 /**
- * Install the nav-icon swap. Polls while the settings panel is open and
- * swaps the gear for the archive glyph on the matching nav row.
+ * Install the nav-icon swap. Reacts to DOM changes in the same frame the
+ * settings panel first renders, and swaps the gear for the archive glyph on
+ * the matching nav row.
  * @param readLabel - reader for the section's nav label in the active locale.
  * @returns a disposer.
  */
 export function installNavIcon(readLabel) {
   let disposed = false;
+  let queued = false;
   const apply = () => {
     if (disposed) return;
-    const dialog = document.querySelector('[role="dialog"]');
-    if (dialog === null) return;
     const label = readLabel();
-    for (const button of dialog.querySelectorAll("nav button")) {
-      const spans = [...button.children].filter((child) => child.tagName === "SPAN");
-      if (!spans.some((span) => span.textContent === label)) continue;
-      if (button.querySelector(".dshAcv-navIcon") !== null) continue;
-      const gear = button.querySelector("svg");
-      if (gear !== null) gear.style.display = "none";
-      const wrap = document.createElement("span");
-      wrap.className = "dshAcv-navIcon";
-      wrap.innerHTML = ARCHIVE_ICON_SVG;
-      button.insertBefore(wrap, spans[0]);
+    for (const dialog of document.querySelectorAll('[role="dialog"]')) {
+      for (const button of dialog.querySelectorAll("nav button")) {
+        const spans = [...button.children].filter((child) => child.tagName === "SPAN");
+        if (!spans.some((span) => span.textContent === label)) continue;
+        if (button.querySelector(".dshAcv-navIcon") !== null) continue;
+        const gear = button.querySelector("svg");
+        if (gear !== null) gear.style.display = "none";
+        const wrap = document.createElement("span");
+        wrap.className = "dshAcv-navIcon";
+        wrap.innerHTML = ARCHIVE_ICON_SVG;
+        button.insertBefore(wrap, spans[0]);
+      }
     }
   };
-  apply();
-  const timer = setInterval(apply, 500);
+  const schedule = () => {
+    if (disposed || queued) return;
+    queued = true;
+    queueMicrotask(() => {
+      queued = false;
+      apply();
+    });
+  };
+  // The observer callback runs as a microtask before the next paint, so the
+  // swap lands before the gear is ever visible.
+  const observer = new MutationObserver(schedule);
+  observer.observe(document.body, { childList: true, subtree: true });
+  schedule();
+  // Slow safety net: catches anything the observer missed (reconnect,
+  // exotic mounting) without the 500ms-first-paint flash.
+  const timer = setInterval(schedule, 1000);
   return () => {
     disposed = true;
+    observer.disconnect();
     clearInterval(timer);
   };
 }

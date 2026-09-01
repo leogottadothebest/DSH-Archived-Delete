@@ -19775,27 +19775,39 @@ var ARCHIVE_ICON_SVG = [
 ].join("");
 function installNavIcon(readLabel) {
   let disposed = false;
+  let queued = false;
   const apply2 = () => {
     if (disposed) return;
-    const dialog = document.querySelector('[role="dialog"]');
-    if (dialog === null) return;
     const label = readLabel();
-    for (const button of dialog.querySelectorAll("nav button")) {
-      const spans = [...button.children].filter((child) => child.tagName === "SPAN");
-      if (!spans.some((span) => span.textContent === label)) continue;
-      if (button.querySelector(".dshAcv-navIcon") !== null) continue;
-      const gear = button.querySelector("svg");
-      if (gear !== null) gear.style.display = "none";
-      const wrap = document.createElement("span");
-      wrap.className = "dshAcv-navIcon";
-      wrap.innerHTML = ARCHIVE_ICON_SVG;
-      button.insertBefore(wrap, spans[0]);
+    for (const dialog of document.querySelectorAll('[role="dialog"]')) {
+      for (const button of dialog.querySelectorAll("nav button")) {
+        const spans = [...button.children].filter((child) => child.tagName === "SPAN");
+        if (!spans.some((span) => span.textContent === label)) continue;
+        if (button.querySelector(".dshAcv-navIcon") !== null) continue;
+        const gear = button.querySelector("svg");
+        if (gear !== null) gear.style.display = "none";
+        const wrap = document.createElement("span");
+        wrap.className = "dshAcv-navIcon";
+        wrap.innerHTML = ARCHIVE_ICON_SVG;
+        button.insertBefore(wrap, spans[0]);
+      }
     }
   };
-  apply2();
-  const timer = setInterval(apply2, 500);
+  const schedule = () => {
+    if (disposed || queued) return;
+    queued = true;
+    queueMicrotask(() => {
+      queued = false;
+      apply2();
+    });
+  };
+  const observer = new MutationObserver(schedule);
+  observer.observe(document.body, { childList: true, subtree: true });
+  schedule();
+  const timer = setInterval(schedule, 1e3);
   return () => {
     disposed = true;
+    observer.disconnect();
     clearInterval(timer);
   };
 }
