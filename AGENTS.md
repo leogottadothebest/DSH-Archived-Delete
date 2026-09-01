@@ -29,6 +29,17 @@
 - 仓库已配置 `core.hooksPath = .githooks`,每次 commit 后 `post-commit` 钩子会自动推送——但钩子只是兜底,**agent 仍必须自己执行 `git push` 并反馈版本**,不得依赖钩子。
 - 其他项目的仓库(如 `~/Documents/DeepSeekHarness/Academic`、`Settings`、`Website` 等)不受本规则约束,除非那些仓库也有各自的 AGENTS.md。
 
+## 规则:npm 发布必须走网页验证流程(用户亲自验证)
+
+用户明确要求(2026-09-01):"以后 npm 发布都要给我跳转网页界面,我来验证"。执行 `npm publish` 时**必须**采用以下流程,不得绕过:
+
+1. 在后台执行 `npm publish`(命令保持运行),捕获其输出的**一次性登录 URL**(`https://www.npmjs.com/auth/cli/...`,EOTP 流程会自动打印)。
+2. 把该 URL 交给用户,由用户**亲自在浏览器中打开并完成验证**(登录/2FA 均在网页完成)。
+3. 用户完成后,npm CLI 会自动取回一次性 token 并继续发布;等待命令结束。
+4. 之后照常执行强制验证(`npm view dsh-plugin-archived-conversations version` 与本地一致)与 `git push origin main --tags`。
+
+严禁在未走网页验证流程的情况下自行完成发布(例如直接要求用户提供 OTP 码或代为输入)。
+
 ## 仓库信息
 
 - 远端:https://github.com/leogottadothebest/DSH-Archived-Delete.git
