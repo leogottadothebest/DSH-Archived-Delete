@@ -13,7 +13,7 @@
  *
  * @module dsh-plugin-archived-conversations/client/page
  */
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useState, useSyncExternalStore } from "react";
 import { jsx, jsxs } from "react/jsx-runtime";
 import {
   Button,
@@ -24,6 +24,7 @@ import {
   Menu,
   RiskConfirmation
 } from "@deepseek-ai/dsh-client-ui-primitives";
+import { installStyles } from "./styles.js";
 
 /** Format an absolute archive time in the local convention (zh: 2026年8月11日，14:17). */
 function formatArchiveTime(at, lang) {
@@ -209,6 +210,13 @@ export function ArchivedConversationsPage({ page, t, readLocale }) {
   const [confirmAll, setConfirmAll] = useState(null);
   const [acknowledged, setAcknowledged] = useState(false);
   const lang = readLocale() ?? "en";
+
+  // Re-assert the stylesheet every time this page mounts (idempotent; runs
+  // before paint). The module-scope injection covers boot; this covers a tag
+  // removed mid-session by anything else — the page can never render unstyled.
+  useLayoutEffect(() => {
+    installStyles();
+  }, []);
 
   // Reset the confirmation dialog whenever its target changes or closes.
   useEffect(() => {

@@ -19166,325 +19166,10 @@ var ArchivedConversationsController = class {
 var import_react = require("react");
 var import_jsx_runtime = require("react/jsx-runtime");
 var import_dsh_client_ui_primitives = require("@deepseek-ai/dsh-client-ui-primitives");
-function formatArchiveTime(at, lang) {
-  if (at === null) return null;
-  const date5 = new Date(at);
-  if (lang.startsWith("zh")) {
-    const hh = String(date5.getHours()).padStart(2, "0");
-    const mm = String(date5.getMinutes()).padStart(2, "0");
-    return `${date5.getFullYear()}\u5E74${date5.getMonth() + 1}\u6708${date5.getDate()}\u65E5\uFF0C${hh}:${mm}`;
-  }
-  return new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit"
-  }).format(date5);
-}
-function groupItems(items) {
-  const groups = [];
-  const byPath = /* @__PURE__ */ new Map();
-  for (const item of items) {
-    const path = item.cwd ?? "";
-    let group = byPath.get(path);
-    if (group === void 0) {
-      group = { path, items: [] };
-      byPath.set(path, group);
-      groups.push(group);
-    }
-    group.items.push(item);
-  }
-  const ungrouped = groups.filter((group) => group.path === "");
-  return [...groups.filter((group) => group.path !== ""), ...ungrouped];
-}
-function projectTitle(path, projects, t) {
-  if (path === "") return t("noWorkspace");
-  const title = projects[path];
-  if (typeof title === "string" && title !== "") return title;
-  const segments = path.split("/").filter(Boolean);
-  return segments.length > 0 ? segments[segments.length - 1] : path;
-}
-function ArchivedRow({ item, t, lang, pending, onUnarchive, onDelete }) {
-  const title = item.title ?? t("untitled");
-  const when = formatArchiveTime(item.archivedAt, lang);
-  const busy = pending;
-  return (0, import_jsx_runtime.jsx)("li", {
-    className: "dshAcv-row",
-    children: [
-      (0, import_jsx_runtime.jsxs)("div", {
-        className: "dshAcv-rowMain",
-        children: [
-          (0, import_jsx_runtime.jsx)("div", { className: "dshAcv-rowTitle", title, children: title }),
-          (0, import_jsx_runtime.jsxs)("div", {
-            className: "dshAcv-rowMeta",
-            children: [
-              (0, import_jsx_runtime.jsx)("span", { children: when ?? t("timeUnknown") }),
-              item.readError !== null && (0, import_jsx_runtime.jsx)("span", {
-                className: "dshAcv-rowError",
-                children: t("readErrorLabel").replace("{error}", item.readError)
-              })
-            ]
-          })
-        ]
-      }),
-      (0, import_jsx_runtime.jsxs)("div", {
-        className: "dshAcv-rowActions",
-        children: [
-          (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.Button, {
-            variant: "outline",
-            size: "sm",
-            disabled: busy,
-            icon: (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconArchiveOutline20, { size: 14 }),
-            onClick: () => onUnarchive(item.sessionId),
-            children: t("unarchive")
-          }),
-          (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.Button, {
-            variant: "outline",
-            size: "sm",
-            disabled: busy,
-            className: "dshAcv-dangerButton",
-            icon: (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconTrashOutline16, {}),
-            onClick: () => onDelete(item),
-            children: t("delete")
-          })
-        ]
-      })
-    ]
-  });
-}
-function ProjectGroup({ group, projects, t, lang, pending, onUnarchive, onDelete, onUnarchiveAll, onDeleteAll }) {
-  const [menuOpen, setMenuOpen] = (0, import_react.useState)(false);
-  const title = projectTitle(group.path, projects, t);
-  const items = [
-    {
-      id: "unarchive",
-      label: t("unarchiveAll"),
-      icon: (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconArchiveOutline20, { size: 14 })
-    },
-    {
-      id: "delete",
-      label: t("deleteAll"),
-      icon: (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconTrashOutline16, {}),
-      danger: true
-    }
-  ];
-  return (0, import_jsx_runtime.jsxs)("section", {
-    className: "dshAcv-group",
-    children: [
-      (0, import_jsx_runtime.jsxs)("div", {
-        className: "dshAcv-groupHeader",
-        children: [
-          (0, import_jsx_runtime.jsx)("span", {
-            className: "dshAcv-groupIcon",
-            children: (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconFolderClose16, { size: 14 })
-          }),
-          (0, import_jsx_runtime.jsx)("span", {
-            className: "dshAcv-groupTitle",
-            title: group.path === "" ? void 0 : group.path,
-            children: title
-          }),
-          (0, import_jsx_runtime.jsx)("span", {
-            className: "dshAcv-groupCount",
-            children: String(group.items.length)
-          }),
-          (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.Menu, {
-            open: menuOpen,
-            onClose: () => setMenuOpen(false),
-            items,
-            onSelect: (id) => {
-              setMenuOpen(false);
-              if (id === "unarchive") onUnarchiveAll(group);
-              else if (id === "delete") onDeleteAll(group);
-            },
-            portal: true,
-            closeOnPointerLeave: true,
-            anchor: (0, import_jsx_runtime.jsx)("button", {
-              type: "button",
-              className: "dshAcv-groupMenu",
-              "aria-label": t("groupMenuAria").replace("{name}", title),
-              onClick: (event) => {
-                event.stopPropagation();
-                setMenuOpen((open2) => !open2);
-              },
-              children: (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconEllipsisOutline16, {})
-            })
-          })
-        ]
-      }),
-      (0, import_jsx_runtime.jsx)("ul", {
-        className: "dshAcv-list",
-        children: group.items.map((item) => (0, import_jsx_runtime.jsx)(ArchivedRow, {
-          item,
-          t,
-          lang,
-          pending: pending.has(item.sessionId),
-          onUnarchive,
-          onDelete
-        }, item.sessionId))
-      })
-    ]
-  });
-}
-function ArchivedConversationsPage({ page, t, readLocale }) {
-  const snapshot = (0, import_react.useSyncExternalStore)(page.subscribe, page.getSnapshot, page.getSnapshot);
-  const [confirmItem, setConfirmItem] = (0, import_react.useState)(null);
-  const [confirmAll, setConfirmAll] = (0, import_react.useState)(null);
-  const [acknowledged, setAcknowledged] = (0, import_react.useState)(false);
-  const lang = readLocale() ?? "en";
-  (0, import_react.useEffect)(() => {
-    setAcknowledged(false);
-  }, [confirmItem, confirmAll]);
-  (0, import_react.useEffect)(() => {
-    if (snapshot.message === null) return;
-    const timer = setTimeout(() => page.dismissMessage(), 5e3);
-    return () => clearTimeout(timer);
-  }, [snapshot.message, page]);
-  const busyCount = snapshot.pending.size;
-  const groups = groupItems(snapshot.items);
-  const onConfirmSingleDelete = async () => {
-    if (confirmItem === null) return;
-    const sessionId2 = confirmItem.sessionId;
-    setConfirmItem(null);
-    setAcknowledged(false);
-    await page.deleteSession(sessionId2);
-  };
-  const onConfirmBulkDelete = async () => {
-    if (confirmAll === null) return;
-    const cwd = confirmAll.cwd;
-    setConfirmAll(null);
-    setAcknowledged(false);
-    await page.deleteAll(cwd);
-  };
-  const openBulkConfirm = (group) => {
-    setConfirmAll({
-      cwd: group.path === "" ? void 0 : group.path,
-      title: projectTitle(group.path, snapshot.projects, t),
-      count: group.items.length
-    });
-    setAcknowledged(false);
-  };
-  return (0, import_jsx_runtime.jsxs)("div", {
-    className: "dshAcv",
-    children: [
-      (0, import_jsx_runtime.jsxs)("header", {
-        className: "dshAcv-header",
-        children: [
-          (0, import_jsx_runtime.jsxs)("div", {
-            children: [
-              (0, import_jsx_runtime.jsx)("h2", { className: "dshAcv-title", children: t("heading") }),
-              (0, import_jsx_runtime.jsx)("p", { className: "dshAcv-description", children: t("description") })
-            ]
-          }),
-          (0, import_jsx_runtime.jsxs)("div", {
-            className: "dshAcv-toolbar",
-            children: [
-              (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.Button, {
-                variant: "outline",
-                size: "sm",
-                disabled: snapshot.phase !== "ready" || snapshot.items.length === 0 || busyCount > 0,
-                icon: (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconArchiveOutline20, { size: 14 }),
-                onClick: () => void page.unarchiveAll(void 0),
-                children: t("unarchiveAll")
-              }),
-              (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.Button, {
-                variant: "outline",
-                size: "sm",
-                disabled: snapshot.phase !== "ready" || snapshot.items.length === 0 || busyCount > 0,
-                className: "dshAcv-dangerButton",
-                icon: (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconTrashOutline16, {}),
-                onClick: () => {
-                  setConfirmAll({ cwd: void 0, title: t("heading"), count: snapshot.items.length });
-                  setAcknowledged(false);
-                },
-                children: t("deleteAll")
-              })
-            ]
-          })
-        ]
-      }),
-      snapshot.phase === "ready" && snapshot.message !== null && (0, import_jsx_runtime.jsx)("div", {
-        className: `dshAcv-banner dshAcv-banner-${snapshot.message.kind}`,
-        children: snapshot.message.key !== void 0 ? t(snapshot.message.key).replace("{n}", String(snapshot.message.failed ?? snapshot.message.deleted ?? 0)) : snapshot.message.text
-      }),
-      snapshot.phase === "loading" && (0, import_jsx_runtime.jsx)("div", {
-        className: "dshAcv-state",
-        children: (0, import_jsx_runtime.jsx)("span", { className: "dshAcv-spinner", "aria-hidden": "true" })
-      }),
-      snapshot.phase === "error" && (0, import_jsx_runtime.jsxs)("div", {
-        className: "dshAcv-state",
-        children: [
-          (0, import_jsx_runtime.jsx)("p", {
-            className: "dshAcv-stateText",
-            children: t("errorLabel").replace("{error}", snapshot.message?.text ?? "")
-          }),
-          (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.Button, { variant: "outline", size: "sm", onClick: () => void page.refresh(), children: t("retry") })
-        ]
-      }),
-      snapshot.phase === "ready" && groups.length === 0 && (0, import_jsx_runtime.jsxs)("div", {
-        className: "dshAcv-state",
-        children: [
-          (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconArchiveOutline20, { size: 28, className: "dshAcv-stateIcon" }),
-          (0, import_jsx_runtime.jsx)("p", { className: "dshAcv-stateText", children: t("empty") })
-        ]
-      }),
-      snapshot.phase === "ready" && groups.length > 0 && (0, import_jsx_runtime.jsx)("div", {
-        className: "dshAcv-listWrap",
-        children: groups.map((group) => (0, import_jsx_runtime.jsx)(ProjectGroup, {
-          group,
-          projects: snapshot.projects,
-          t,
-          lang,
-          pending: snapshot.pending,
-          onUnarchive: (sessionId2) => void page.unarchive(sessionId2),
-          onDelete: (item) => {
-            setConfirmItem(item);
-            setAcknowledged(false);
-          },
-          onUnarchiveAll: (target) => void page.unarchiveAll(target.path === "" ? void 0 : target.path),
-          onDeleteAll: openBulkConfirm
-        }, group.path === "" ? "__ungrouped__" : group.path))
-      }),
-      (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.RiskConfirmation, {
-        open: confirmItem !== null,
-        title: t("confirmTitle"),
-        description: t("confirmDescription").replace("{title}", confirmItem?.title ?? t("untitled")),
-        acknowledgeLabel: t("acknowledge"),
-        cancelLabel: t("cancel"),
-        closeLabel: t("cancel"),
-        confirmLabel: t("confirmDelete"),
-        acknowledged,
-        disabled: snapshot.pending.size > 0,
-        onAcknowledgedChange: setAcknowledged,
-        onCancel: () => {
-          setConfirmItem(null);
-          setAcknowledged(false);
-        },
-        onConfirm: () => void onConfirmSingleDelete()
-      }),
-      (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.RiskConfirmation, {
-        open: confirmAll !== null,
-        title: t("confirmAllTitle"),
-        description: confirmAll !== null && confirmAll.cwd !== void 0 ? t("confirmProjectDescription").replace("{title}", confirmAll.title).replace("{n}", String(confirmAll.count)) : t("confirmAllDescription").replace("{n}", String(snapshot.items.length)),
-        acknowledgeLabel: t("acknowledge"),
-        cancelLabel: t("cancel"),
-        closeLabel: t("cancel"),
-        confirmLabel: t("confirmDeleteAll"),
-        acknowledged,
-        disabled: snapshot.pending.size > 0,
-        onAcknowledgedChange: setAcknowledged,
-        onCancel: () => {
-          setConfirmAll(null);
-          setAcknowledged(false);
-        },
-        onConfirm: () => void onConfirmBulkDelete()
-      })
-    ]
-  });
-}
 
 // client/src/styles.js
 var STYLE_ID = "dsh-plugin-archived-conversations";
+var STYLE_CSS_ID = "dsh-plugin-archived-conversations/page.css";
 var css = `
 .dshAcv {
   display: flex;
@@ -19755,15 +19440,334 @@ var css = `
 }
 `;
 function installStyles() {
-  if (document.querySelector(`style[data-plugin="${STYLE_ID}"]`) !== null) return () => {
-  };
+  if (typeof document === "undefined") return;
+  if (document.querySelector(`style[data-plugin-css="${STYLE_CSS_ID}"]`) !== null) return;
   const style = document.createElement("style");
   style.dataset.plugin = STYLE_ID;
+  style.dataset.pluginCss = STYLE_CSS_ID;
   style.textContent = css;
   document.head.append(style);
-  return () => {
-    style.remove();
+}
+
+// client/src/page.js
+function formatArchiveTime(at, lang) {
+  if (at === null) return null;
+  const date5 = new Date(at);
+  if (lang.startsWith("zh")) {
+    const hh = String(date5.getHours()).padStart(2, "0");
+    const mm = String(date5.getMinutes()).padStart(2, "0");
+    return `${date5.getFullYear()}\u5E74${date5.getMonth() + 1}\u6708${date5.getDate()}\u65E5\uFF0C${hh}:${mm}`;
+  }
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date5);
+}
+function groupItems(items) {
+  const groups = [];
+  const byPath = /* @__PURE__ */ new Map();
+  for (const item of items) {
+    const path = item.cwd ?? "";
+    let group = byPath.get(path);
+    if (group === void 0) {
+      group = { path, items: [] };
+      byPath.set(path, group);
+      groups.push(group);
+    }
+    group.items.push(item);
+  }
+  const ungrouped = groups.filter((group) => group.path === "");
+  return [...groups.filter((group) => group.path !== ""), ...ungrouped];
+}
+function projectTitle(path, projects, t) {
+  if (path === "") return t("noWorkspace");
+  const title = projects[path];
+  if (typeof title === "string" && title !== "") return title;
+  const segments = path.split("/").filter(Boolean);
+  return segments.length > 0 ? segments[segments.length - 1] : path;
+}
+function ArchivedRow({ item, t, lang, pending, onUnarchive, onDelete }) {
+  const title = item.title ?? t("untitled");
+  const when = formatArchiveTime(item.archivedAt, lang);
+  const busy = pending;
+  return (0, import_jsx_runtime.jsx)("li", {
+    className: "dshAcv-row",
+    children: [
+      (0, import_jsx_runtime.jsxs)("div", {
+        className: "dshAcv-rowMain",
+        children: [
+          (0, import_jsx_runtime.jsx)("div", { className: "dshAcv-rowTitle", title, children: title }),
+          (0, import_jsx_runtime.jsxs)("div", {
+            className: "dshAcv-rowMeta",
+            children: [
+              (0, import_jsx_runtime.jsx)("span", { children: when ?? t("timeUnknown") }),
+              item.readError !== null && (0, import_jsx_runtime.jsx)("span", {
+                className: "dshAcv-rowError",
+                children: t("readErrorLabel").replace("{error}", item.readError)
+              })
+            ]
+          })
+        ]
+      }),
+      (0, import_jsx_runtime.jsxs)("div", {
+        className: "dshAcv-rowActions",
+        children: [
+          (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.Button, {
+            variant: "outline",
+            size: "sm",
+            disabled: busy,
+            icon: (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconArchiveOutline20, { size: 14 }),
+            onClick: () => onUnarchive(item.sessionId),
+            children: t("unarchive")
+          }),
+          (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.Button, {
+            variant: "outline",
+            size: "sm",
+            disabled: busy,
+            className: "dshAcv-dangerButton",
+            icon: (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconTrashOutline16, {}),
+            onClick: () => onDelete(item),
+            children: t("delete")
+          })
+        ]
+      })
+    ]
+  });
+}
+function ProjectGroup({ group, projects, t, lang, pending, onUnarchive, onDelete, onUnarchiveAll, onDeleteAll }) {
+  const [menuOpen, setMenuOpen] = (0, import_react.useState)(false);
+  const title = projectTitle(group.path, projects, t);
+  const items = [
+    {
+      id: "unarchive",
+      label: t("unarchiveAll"),
+      icon: (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconArchiveOutline20, { size: 14 })
+    },
+    {
+      id: "delete",
+      label: t("deleteAll"),
+      icon: (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconTrashOutline16, {}),
+      danger: true
+    }
+  ];
+  return (0, import_jsx_runtime.jsxs)("section", {
+    className: "dshAcv-group",
+    children: [
+      (0, import_jsx_runtime.jsxs)("div", {
+        className: "dshAcv-groupHeader",
+        children: [
+          (0, import_jsx_runtime.jsx)("span", {
+            className: "dshAcv-groupIcon",
+            children: (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconFolderClose16, { size: 14 })
+          }),
+          (0, import_jsx_runtime.jsx)("span", {
+            className: "dshAcv-groupTitle",
+            title: group.path === "" ? void 0 : group.path,
+            children: title
+          }),
+          (0, import_jsx_runtime.jsx)("span", {
+            className: "dshAcv-groupCount",
+            children: String(group.items.length)
+          }),
+          (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.Menu, {
+            open: menuOpen,
+            onClose: () => setMenuOpen(false),
+            items,
+            onSelect: (id) => {
+              setMenuOpen(false);
+              if (id === "unarchive") onUnarchiveAll(group);
+              else if (id === "delete") onDeleteAll(group);
+            },
+            portal: true,
+            closeOnPointerLeave: true,
+            anchor: (0, import_jsx_runtime.jsx)("button", {
+              type: "button",
+              className: "dshAcv-groupMenu",
+              "aria-label": t("groupMenuAria").replace("{name}", title),
+              onClick: (event) => {
+                event.stopPropagation();
+                setMenuOpen((open2) => !open2);
+              },
+              children: (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconEllipsisOutline16, {})
+            })
+          })
+        ]
+      }),
+      (0, import_jsx_runtime.jsx)("ul", {
+        className: "dshAcv-list",
+        children: group.items.map((item) => (0, import_jsx_runtime.jsx)(ArchivedRow, {
+          item,
+          t,
+          lang,
+          pending: pending.has(item.sessionId),
+          onUnarchive,
+          onDelete
+        }, item.sessionId))
+      })
+    ]
+  });
+}
+function ArchivedConversationsPage({ page, t, readLocale }) {
+  const snapshot = (0, import_react.useSyncExternalStore)(page.subscribe, page.getSnapshot, page.getSnapshot);
+  const [confirmItem, setConfirmItem] = (0, import_react.useState)(null);
+  const [confirmAll, setConfirmAll] = (0, import_react.useState)(null);
+  const [acknowledged, setAcknowledged] = (0, import_react.useState)(false);
+  const lang = readLocale() ?? "en";
+  (0, import_react.useLayoutEffect)(() => {
+    installStyles();
+  }, []);
+  (0, import_react.useEffect)(() => {
+    setAcknowledged(false);
+  }, [confirmItem, confirmAll]);
+  (0, import_react.useEffect)(() => {
+    if (snapshot.message === null) return;
+    const timer = setTimeout(() => page.dismissMessage(), 5e3);
+    return () => clearTimeout(timer);
+  }, [snapshot.message, page]);
+  const busyCount = snapshot.pending.size;
+  const groups = groupItems(snapshot.items);
+  const onConfirmSingleDelete = async () => {
+    if (confirmItem === null) return;
+    const sessionId2 = confirmItem.sessionId;
+    setConfirmItem(null);
+    setAcknowledged(false);
+    await page.deleteSession(sessionId2);
   };
+  const onConfirmBulkDelete = async () => {
+    if (confirmAll === null) return;
+    const cwd = confirmAll.cwd;
+    setConfirmAll(null);
+    setAcknowledged(false);
+    await page.deleteAll(cwd);
+  };
+  const openBulkConfirm = (group) => {
+    setConfirmAll({
+      cwd: group.path === "" ? void 0 : group.path,
+      title: projectTitle(group.path, snapshot.projects, t),
+      count: group.items.length
+    });
+    setAcknowledged(false);
+  };
+  return (0, import_jsx_runtime.jsxs)("div", {
+    className: "dshAcv",
+    children: [
+      (0, import_jsx_runtime.jsxs)("header", {
+        className: "dshAcv-header",
+        children: [
+          (0, import_jsx_runtime.jsxs)("div", {
+            children: [
+              (0, import_jsx_runtime.jsx)("h2", { className: "dshAcv-title", children: t("heading") }),
+              (0, import_jsx_runtime.jsx)("p", { className: "dshAcv-description", children: t("description") })
+            ]
+          }),
+          (0, import_jsx_runtime.jsxs)("div", {
+            className: "dshAcv-toolbar",
+            children: [
+              (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.Button, {
+                variant: "outline",
+                size: "sm",
+                disabled: snapshot.phase !== "ready" || snapshot.items.length === 0 || busyCount > 0,
+                icon: (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconArchiveOutline20, { size: 14 }),
+                onClick: () => void page.unarchiveAll(void 0),
+                children: t("unarchiveAll")
+              }),
+              (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.Button, {
+                variant: "outline",
+                size: "sm",
+                disabled: snapshot.phase !== "ready" || snapshot.items.length === 0 || busyCount > 0,
+                className: "dshAcv-dangerButton",
+                icon: (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconTrashOutline16, {}),
+                onClick: () => {
+                  setConfirmAll({ cwd: void 0, title: t("heading"), count: snapshot.items.length });
+                  setAcknowledged(false);
+                },
+                children: t("deleteAll")
+              })
+            ]
+          })
+        ]
+      }),
+      snapshot.phase === "ready" && snapshot.message !== null && (0, import_jsx_runtime.jsx)("div", {
+        className: `dshAcv-banner dshAcv-banner-${snapshot.message.kind}`,
+        children: snapshot.message.key !== void 0 ? t(snapshot.message.key).replace("{n}", String(snapshot.message.failed ?? snapshot.message.deleted ?? 0)) : snapshot.message.text
+      }),
+      snapshot.phase === "loading" && (0, import_jsx_runtime.jsx)("div", {
+        className: "dshAcv-state",
+        children: (0, import_jsx_runtime.jsx)("span", { className: "dshAcv-spinner", "aria-hidden": "true" })
+      }),
+      snapshot.phase === "error" && (0, import_jsx_runtime.jsxs)("div", {
+        className: "dshAcv-state",
+        children: [
+          (0, import_jsx_runtime.jsx)("p", {
+            className: "dshAcv-stateText",
+            children: t("errorLabel").replace("{error}", snapshot.message?.text ?? "")
+          }),
+          (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.Button, { variant: "outline", size: "sm", onClick: () => void page.refresh(), children: t("retry") })
+        ]
+      }),
+      snapshot.phase === "ready" && groups.length === 0 && (0, import_jsx_runtime.jsxs)("div", {
+        className: "dshAcv-state",
+        children: [
+          (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.IconArchiveOutline20, { size: 28, className: "dshAcv-stateIcon" }),
+          (0, import_jsx_runtime.jsx)("p", { className: "dshAcv-stateText", children: t("empty") })
+        ]
+      }),
+      snapshot.phase === "ready" && groups.length > 0 && (0, import_jsx_runtime.jsx)("div", {
+        className: "dshAcv-listWrap",
+        children: groups.map((group) => (0, import_jsx_runtime.jsx)(ProjectGroup, {
+          group,
+          projects: snapshot.projects,
+          t,
+          lang,
+          pending: snapshot.pending,
+          onUnarchive: (sessionId2) => void page.unarchive(sessionId2),
+          onDelete: (item) => {
+            setConfirmItem(item);
+            setAcknowledged(false);
+          },
+          onUnarchiveAll: (target) => void page.unarchiveAll(target.path === "" ? void 0 : target.path),
+          onDeleteAll: openBulkConfirm
+        }, group.path === "" ? "__ungrouped__" : group.path))
+      }),
+      (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.RiskConfirmation, {
+        open: confirmItem !== null,
+        title: t("confirmTitle"),
+        description: t("confirmDescription").replace("{title}", confirmItem?.title ?? t("untitled")),
+        acknowledgeLabel: t("acknowledge"),
+        cancelLabel: t("cancel"),
+        closeLabel: t("cancel"),
+        confirmLabel: t("confirmDelete"),
+        acknowledged,
+        disabled: snapshot.pending.size > 0,
+        onAcknowledgedChange: setAcknowledged,
+        onCancel: () => {
+          setConfirmItem(null);
+          setAcknowledged(false);
+        },
+        onConfirm: () => void onConfirmSingleDelete()
+      }),
+      (0, import_jsx_runtime.jsx)(import_dsh_client_ui_primitives.RiskConfirmation, {
+        open: confirmAll !== null,
+        title: t("confirmAllTitle"),
+        description: confirmAll !== null && confirmAll.cwd !== void 0 ? t("confirmProjectDescription").replace("{title}", confirmAll.title).replace("{n}", String(confirmAll.count)) : t("confirmAllDescription").replace("{n}", String(snapshot.items.length)),
+        acknowledgeLabel: t("acknowledge"),
+        cancelLabel: t("cancel"),
+        closeLabel: t("cancel"),
+        confirmLabel: t("confirmDeleteAll"),
+        acknowledged,
+        disabled: snapshot.pending.size > 0,
+        onAcknowledgedChange: setAcknowledged,
+        onCancel: () => {
+          setConfirmAll(null);
+          setAcknowledged(false);
+        },
+        onConfirm: () => void onConfirmBulkDelete()
+      })
+    ]
+  });
 }
 
 // client/src/nav-icon.js
@@ -19896,10 +19900,11 @@ var en = {
 var NS = "archived-conversations";
 var name = "archived-conversations-client";
 var inject = ["remote", "slots", "locale", "workspaces"];
+installStyles();
 async function apply(ctx) {
   const unmountRemote = await ctx.remote.$mount(TYPERT_REMOTE);
   const page = new ArchivedConversationsController(ctx);
-  const offStyles = installStyles();
+  installStyles();
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), "archived-conversations: dictionaries");
   const offNavIcon = installNavIcon(() => ctx.locale.bind(NS)("nav"));
   ctx.slots.inject("settings.section", () => ctx.slots.register({
@@ -19917,7 +19922,6 @@ async function apply(ctx) {
   return async () => {
     offNavIcon();
     page.dispose();
-    offStyles();
     await unmountRemote();
   };
 }

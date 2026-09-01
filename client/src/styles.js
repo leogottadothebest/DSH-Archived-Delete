@@ -6,10 +6,23 @@
  * page inherits the application's theme, density, and light/dark handling
  * instead of defining its own palette.
  *
+ * Lifecycle follows the DSH client convention (see the first-party bundles,
+ * e.g. dsh-client-ui-theme): the tag is stamped with BOTH `data-plugin` and
+ * `data-plugin-css`, created at module materialization — before the host's
+ * `claimStyles` inventory runs, so the module system records the tag as
+ * this plugin's own stylesheet — and it is NEVER removed on dispose. A
+ * disposer-removal cycle is exactly what could leave a live page with a
+ * working component but no stylesheet (remove-after-remount interleaving),
+ * so the injection is idempotent and is re-asserted whenever the settings
+ * page opens; the tag is inert when the page is not mounted.
+ *
  * @module dsh-plugin-archived-conversations/client/styles
  */
 
+/** `data-plugin` value: the owning client module (package name). */
 const STYLE_ID = "dsh-plugin-archived-conversations";
+/** `data-plugin-css` value: the stylesheet identity, mirroring first-party css ids. */
+const STYLE_CSS_ID = "dsh-plugin-archived-conversations/page.css";
 
 const css = `
 .dshAcv {
@@ -281,14 +294,16 @@ const css = `
 }
 `;
 
-/** Install the scoped stylesheet once; returns its disposer. */
+/**
+ * Install the scoped stylesheet (idempotent; safe to call any time, anywhere —
+ * module scope, apply, and every page mount). Never removes an existing tag.
+ */
 export function installStyles() {
-  if (document.querySelector(`style[data-plugin="${STYLE_ID}"]`) !== null) return () => {};
+  if (typeof document === "undefined") return;
+  if (document.querySelector(`style[data-plugin-css="${STYLE_CSS_ID}"]`) !== null) return;
   const style = document.createElement("style");
   style.dataset.plugin = STYLE_ID;
+  style.dataset.pluginCss = STYLE_CSS_ID;
   style.textContent = css;
   document.head.append(style);
-  return () => {
-    style.remove();
-  };
 }

@@ -85,6 +85,7 @@ if (captured.id !== pkg.name) throw new Error(`artifact id ${JSON.stringify(capt
 const seeds = {
   react: {
     useEffect: () => {},
+    useLayoutEffect: () => {},
     useState: (value) => [value, () => {}],
     useSyncExternalStore: (_subscribe, getSnapshot) => getSnapshot(),
     Fragment: "Fragment"
@@ -100,8 +101,10 @@ const seeds = {
   "@deepseek-ai/dsh-client-ui-primitives": {
     Button: () => {},
     IconArchiveOutline20: () => {},
+    IconEllipsisOutline16: () => {},
     IconFolderClose16: () => {},
     IconTrashOutline16: () => {},
+    Menu: () => {},
     RiskConfirmation: () => {},
     relativeTime: () => ({ unit: "now", n: 0 })
   }
