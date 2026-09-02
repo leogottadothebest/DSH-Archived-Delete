@@ -9,6 +9,14 @@
 
 （无）
 
+## [0.1.3] - 2026-09-02
+
+### 变更
+
+- 品牌统一：GitHub 仓库更名为 `dsh-plugin-archived-conversations`（与插件名
+  一致）；同步 `repository`/`homepage`/`bugs` 元数据与 README、贡献文档、
+  issue 模板、AGENTS.md 中的仓库链接。旧地址自动跳转，目录条目随后更新。
+
 ## [0.1.2] - 2026-09-01
 
 ### 修复
