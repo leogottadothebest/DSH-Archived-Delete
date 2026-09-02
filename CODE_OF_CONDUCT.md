@@ -42,7 +42,7 @@
 ## 执行
 
 辱骂、骚扰或其他不可接受的行为可以通过
-[issue](https://github.com/leogottadothebest/DSH-Archived-Delete/issues)
+[issue](https://github.com/leogottadothebest/dsh-plugin-archived-conversations/issues)
 或直接联系项目维护者举报。所有投诉都将被及时、公正地审查和调查，并
 在必要和适当的情况下保护举报者的隐私。
 

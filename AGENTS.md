@@ -1,4 +1,4 @@
-# DSH-Archived-Delete 项目指令
+# dsh-plugin-archived-conversations 项目指令
 
 本文件是 **DeepSeek Harness 的持久工作区指令**:DSH 在每个会话启动时都会读取本文件,因此**任何对话、任何会话**中的 agent 都必须遵守本规则,无需用户重复说明。
 
@@ -42,6 +42,6 @@
 
 ## 仓库信息
 
-- 远端:https://github.com/leogottadothebest/DSH-Archived-Delete.git
+- 远端:https://github.com/leogottadothebest/dsh-plugin-archived-conversations.git
 - 默认分支:`main`(已设置 upstream 跟踪)
 - 提交身份:`leogottadothebest` <298153419+leogottadothebest@users.noreply.github.com>

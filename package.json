@@ -8,11 +8,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/leogottadothebest/DSH-Archived-Delete.git"
+    "url": "git+https://github.com/leogottadothebest/dsh-plugin-archived-conversations.git"
   },
-  "homepage": "https://github.com/leogottadothebest/DSH-Archived-Delete#readme",
+  "homepage": "https://github.com/leogottadothebest/dsh-plugin-archived-conversations#readme",
   "bugs": {
-    "url": "https://github.com/leogottadothebest/DSH-Archived-Delete/issues"
+    "url": "https://github.com/leogottadothebest/dsh-plugin-archived-conversations/issues"
   },
   "keywords": [
     "deepseek-harness",

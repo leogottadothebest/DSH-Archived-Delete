@@ -1,7 +1,7 @@
 # dsh-plugin-archived-conversations
 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
-[![ci](https://github.com/leogottadothebest/DSH-Archived-Delete/actions/workflows/ci.yml/badge.svg)](https://github.com/leogottadothebest/DSH-Archived-Delete/actions/workflows/ci.yml)
+[![ci](https://github.com/leogottadothebest/dsh-plugin-archived-conversations/actions/workflows/ci.yml/badge.svg)](https://github.com/leogottadothebest/dsh-plugin-archived-conversations/actions/workflows/ci.yml)
 
 > English: A DeepSeek Harness plugin for managing **archived conversations** in
 > the Settings UI — unarchive them back to the sidebar, or permanently delete
@@ -40,7 +40,7 @@ cd ~/.dsh/profiles/desktop
 pnpm add dsh-plugin-archived-conversations
 
 # 本地开发时也可从源码路径安装（替换为你的克隆路径）
-# pnpm add /path/to/DSH-Archived-Delete
+# pnpm add /path/to/dsh-plugin-archived-conversations
 
 # 把插件追加到 bundle 层：编辑 package.json，在 dsh.profile.bundles 中
 # 加入 "dsh-plugin-archived-conversations"（dshmarket / 插件市场安装
@@ -105,7 +105,7 @@ node --check lib/*.js            # 宿主语法检查
 ## 社区与发布
 
 - 问题与功能建议：在
-  [Issues](https://github.com/leogottadothebest/DSH-Archived-Delete/issues)
+  [Issues](https://github.com/leogottadothebest/dsh-plugin-archived-conversations/issues)
   提交（[Bug 模板](./.github/ISSUE_TEMPLATE/bug_report.yml) /
   [功能模板](./.github/ISSUE_TEMPLATE/feature_request.yml)）。
 - 参与开发：[CONTRIBUTING.md](./CONTRIBUTING.md)；行为准则：

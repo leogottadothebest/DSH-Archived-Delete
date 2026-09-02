@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        建议先搜索现有 issue 与 [DESIGN.md](https://github.com/leogottadothebest/DSH-Archived-Delete/blob/main/DESIGN.md)，确认该想法尚未被讨论或与现有设计冲突。
+        建议先搜索现有 issue 与 [DESIGN.md](https://github.com/leogottadothebest/dsh-plugin-archived-conversations/blob/main/DESIGN.md)，确认该想法尚未被讨论或与现有设计冲突。
   - type: textarea
     id: problem
     attributes:

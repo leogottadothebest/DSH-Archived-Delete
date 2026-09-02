@@ -10,8 +10,8 @@
 ## 开始之前
 
 ```bash
-git clone https://github.com/leogottadothebest/DSH-Archived-Delete.git
-cd DSH-Archived-Delete
+git clone https://github.com/leogottadothebest/dsh-plugin-archived-conversations.git
+cd dsh-plugin-archived-conversations
 pnpm install --frozen-lockfile
 ```
 
