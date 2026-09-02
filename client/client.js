@@ -19653,6 +19653,7 @@ function ArchivedConversationsPage({ page, t, readLocale }) {
   };
   return (0, import_jsx_runtime.jsxs)("div", {
     className: "dshAcv",
+    "data-dshb-scan": true,
     children: [
       (0, import_jsx_runtime.jsxs)("header", {
         className: "dshAcv-header",

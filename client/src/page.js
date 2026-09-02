@@ -259,6 +259,7 @@ export function ArchivedConversationsPage({ page, t, readLocale }) {
 
   return jsxs("div", {
     className: "dshAcv",
+    "data-dshb-scan": true,
     children: [
       jsxs("header", {
         className: "dshAcv-header",
