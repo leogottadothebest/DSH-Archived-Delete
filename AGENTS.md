@@ -6,11 +6,11 @@
 
 ## 规则:每次源代码改动后自动提交并推送 GitHub
 
-**触发条件**:只要本次会话中通过 `write` / `edit` / `bash` 等方式**修改、新增或删除了本仓库(`Archived-Delete`)中的任何文件**(包括源码、文档、配置、本 AGENTS.md 本身),必须在**结束回合之前**完成提交与推送。
+**触发条件**:只要本次会话中通过 `write` / `edit` / `bash` 等方式**修改、新增或删除了本仓库(`dsh-plugin-archived-conversations`)中的任何文件**(包括源码、文档、配置、本 AGENTS.md 本身),必须在**结束回合之前**完成提交与推送。
 
 **必须执行的步骤**(在回合结束前逐一完成):
 
-1. `git -C /Users/leo/Documents/DeepSeekHarness/Archived-Delete status --short` —— 查看改动。
+1. `git -C /Users/leo/Documents/DeepSeekHarness/dsh-plugin-archived-conversations status --short` —— 查看改动。
 2. `git add -A` —— 暂存全部改动。
 3. `git commit -m "<清晰描述本次改动的信息>"` —— 提交信息必须具体说明改了什么、为什么,禁止用 "update" 之类的空泛信息。
 4. `git push origin main` —— 推送到 GitHub 远端。
