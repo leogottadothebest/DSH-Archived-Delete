@@ -5,7 +5,8 @@
 
 ## 1. 背景与现状
 
-深入研读了当前 DSH（0.1.2-alpha.1，Desktop 2.0.4 集成环境）的核心实现后确认：
+深入研读了 DSH core 0.1.2-rc.1（Desktop 2.0.5 集成环境）的核心实现后确认
+（初稿基线为 alpha.1 / Desktop 2.0.4）：
 
 - **归档能力已内建于工作区域（`dsh-workspace`）**：`WorkspaceRegistry`
   持有 registry 级持久状态 `archivedSessionIds`（`workspace.json` 的全局
@@ -123,7 +124,9 @@
 
 ### 3.5 错误语义
 
-业务失败统一 `TypertRemoteFailure({code, message, details})`，客户端收到
+业务失败统一 `new RemoteError(code, message, details)`（dsh-typert-protocol
+rc 线起取代旧名 `TypertRemoteFailure`；判别一律走结构标记
+`remoteErrorOf`，不做 `instanceof`），客户端收到
 `{ok:false, error:{code, message, details}}`：
 
 - `not-archived` —— 目标不在归档集合；

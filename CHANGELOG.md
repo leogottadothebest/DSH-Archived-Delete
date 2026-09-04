@@ -7,7 +7,16 @@
 
 ## [Unreleased]
 
-（无）
+### 修复
+
+- 适配 DSH core 0.1.2-rc.1（Desktop 2.0.5 集成环境）：宿主远程失败改用
+  dsh-typert-protocol rc 线的 `RemoteError`（构造参数 `(code, message,
+  details)`），业务失败判别改用结构标记 `remoteErrorOf`——此前导入的
+  `TypertRemoteFailure` 在该版本已移除，会直接导致宿主半程加载失败。
+- 冷会话行投影读取对齐 rc 线签名：`sessionProjectionCache.cachedSnapshot
+  (header, SessionLogOffset(0))`，并跳过 seeded（继承日志）会话——与核心
+  会话列表 `projectionsFor` 的零 I/O 阶梯一致；新增 peer 依赖
+  `@deepseek-ai/dsh-session`。
 
 ## [0.1.3] - 2026-09-02
 
